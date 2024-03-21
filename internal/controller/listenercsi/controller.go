@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package listenercsi
 
 import (
 	"context"
@@ -22,9 +22,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
+)
+
+var (
+	logger = ctrl.Log.WithName("listenercsi")
 )
 
 // ListenerCSIReconciler reconciles a ListenerCSI object
@@ -36,6 +39,12 @@ type ListenerCSIReconciler struct {
 //+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenercsis,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenercsis/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenercsis/finalizers,verbs=update
+//+kubebuilder"rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterroles,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=clusterrolebindings,verbs=get;list;watch;create;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,9 +56,44 @@ type ListenerCSIReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ListenerCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	instance := &listenersv1alpha1.ListenerCSI{}
 
-	// TODO(user): your logic here
+	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			logger.V(5).Info("ListenerCSI resource not found. Ignoring since object must be deleted")
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "Failed to get ListenerCSI")
+		return ctrl.Result{}, err
+	}
+
+	logger.V(1).Info("Reconciling ListenerCSI", "Name", instance.Name)
+
+	if result, err := NewCSIDriver(r.Client, instance).Reconcile(ctx); err != nil {
+		return result, err
+	} else if result.Requeue {
+		return result, nil
+	}
+
+	if result, err := NewRBAC(r.Client, instance).Reconcile(ctx); err != nil {
+		return result, err
+	} else if result.Requeue {
+		return result, nil
+	}
+
+	if result, err := NewStorageClass(r.Client, instance).Reconcile(ctx); err != nil {
+		return result, err
+	} else if result.Requeue {
+		return result, nil
+	}
+
+	daemonSet := NewDaemonSet(r.Client, instance, &instance.Spec, CSI_SERVICEACCOUNT_NAME)
+
+	if result, err := daemonSet.Reconcile(ctx); err != nil {
+		return result, err
+	} else if result.Requeue {
+		return result, nil
+	}
 
 	return ctrl.Result{}, nil
 }
