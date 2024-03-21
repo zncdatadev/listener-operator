@@ -30,3 +30,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listeners
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listeners/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listeners/status
+  verbs:
+  - get
+  - patch
+  - update

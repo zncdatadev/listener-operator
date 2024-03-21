@@ -1,0 +1,12 @@
+apiVersion: listeners.zncdata.dev/v1alpha1
+kind: Listener
+metadata:
+  labels:
+    app.kubernetes.io/name: listener
+    app.kubernetes.io/instance: listener-sample
+    app.kubernetes.io/part-of: listener-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: listener-operator
+  name: listener-sample
+spec:
+  # TODO(user): Add fields here
