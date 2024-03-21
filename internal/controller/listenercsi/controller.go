@@ -87,7 +87,7 @@ func (r *ListenerCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return result, nil
 	}
 
-	daemonSet := NewDaemonSet(r.Client, instance, &instance.Spec, CSI_SERVICEACCOUNT_NAME)
+	daemonSet := NewDaemonSet(r.Client, instance, CSI_SERVICEACCOUNT_NAME)
 
 	if result, err := daemonSet.Reconcile(ctx); err != nil {
 		return result, err

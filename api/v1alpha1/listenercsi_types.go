@@ -23,7 +23,7 @@ import (
 const (
 
 	// default values
-	CSIPLUGIN_IMAGE_REPOSITORY = "quay.io/zncdata/secret-csi-plugin"
+	CSIPLUGIN_IMAGE_REPOSITORY = "quay.io/zncdata/listener-csi-plugin"
 	CSIPLUGIN_IMAGE_TAG        = "v0.0.1"
 	CSIPLUGIN_IMAGE_PULLPOLICY = "IfNotPresent"
 

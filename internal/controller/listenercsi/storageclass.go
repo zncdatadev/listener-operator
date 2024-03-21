@@ -35,13 +35,13 @@ func (r *StorageClass) build() *storage.StorageClass {
 
 	obj := &storage.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "secrets.zncdata.dev",
+			Name:      "listeners.zncdata.dev",
 			Namespace: r.cr.GetNamespace(),
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "secret-operator",
+				"app.kubernetes.io/managed-by": "listener-operator",
 			},
 		},
-		Provisioner: "secrets.zncdata.dev",
+		Provisioner: "listeners.zncdata.dev",
 	}
 
 	return obj

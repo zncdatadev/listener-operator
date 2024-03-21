@@ -17,15 +17,15 @@ type DaemonSet struct {
 	client client.Client
 	cr     *listenersv1alpha1.ListenerCSI
 
-	secret         *listenersv1alpha1.ListenerCSISpec
+	listener       *listenersv1alpha1.ListenerCSISpec
 	serviceAccount string
 }
 
-func NewDaemonSet(client client.Client, cr *listenersv1alpha1.ListenerCSI, secret *listenersv1alpha1.ListenerCSISpec, serviceAccount string) *DaemonSet {
+func NewDaemonSet(client client.Client, cr *listenersv1alpha1.ListenerCSI, serviceAccount string) *DaemonSet {
 	return &DaemonSet{
 		client:         client,
 		cr:             cr,
-		secret:         secret,
+		listener:       &cr.Spec,
 		serviceAccount: serviceAccount,
 	}
 }
@@ -46,7 +46,7 @@ func (r *DaemonSet) Reconcile(ctx context.Context) (ctrl.Result, error) {
 }
 
 func (r *DaemonSet) getName() string {
-	return "csi-secrets"
+	return "csi-listener"
 }
 
 func (r *DaemonSet) Satisfied(ctx context.Context) (bool, error) {
@@ -125,10 +125,10 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 					ServiceAccountName: r.serviceAccount,
 					Volumes:            r.getVolumes(),
 					Containers: []corev1.Container{
-						*r.makeCSIPluginContainer(r.secret.CSIPlugin),
-						*r.makeNodeDriverRegistrar(r.secret.NodeDriverRegister),
-						*r.makeProvisioner(r.secret.CSIProvisioner),
-						*r.makeLivenessProbe(r.secret.LivenessProbe),
+						*r.makeCSIPluginContainer(r.listener.CSIPlugin),
+						*r.makeNodeDriverRegistrar(r.listener.NodeDriverRegister),
+						*r.makeProvisioner(r.listener.CSIProvisioner),
+						*r.makeLivenessProbe(r.listener.LivenessProbe),
 					},
 				},
 			},
@@ -145,7 +145,7 @@ func (r *DaemonSet) makeCSIPluginContainer(csi *listenersv1alpha1.CSIPluginSpec)
 	privileged := true
 	runAsUser := int64(0)
 	obj := &corev1.Container{
-		Name:            "csi-secrets",
+		Name:            "csi-listener",
 		Image:           csi.Repository + ":" + csi.Tag,
 		ImagePullPolicy: corev1.PullPolicy(csi.PullPolicy),
 		SecurityContext: &corev1.SecurityContext{
