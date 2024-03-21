@@ -1,0 +1,27 @@
+# permissions for end users to view listenercsis.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: listenercsi-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: listener-operator
+    app.kubernetes.io/part-of: listener-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: listenercsi-viewer-role
+rules:
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listenercsis
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listenercsis/status
+  verbs:
+  - get

@@ -33,6 +33,32 @@ rules:
 - apiGroups:
   - listeners.zncdata.dev
   resources:
+  - listenercsis
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listenercsis/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listenercsis/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
   - listeners
   verbs:
   - create
