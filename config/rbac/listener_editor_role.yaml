@@ -1,0 +1,31 @@
+# permissions for end users to edit listeners.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: listener-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: listener-operator
+    app.kubernetes.io/part-of: listener-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: listener-editor-role
+rules:
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listeners
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - listeners.zncdata.dev
+  resources:
+  - listeners/status
+  verbs:
+  - get
