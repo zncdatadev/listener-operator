@@ -20,6 +20,51 @@ import (
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
 )
 
+// volumeContext is the struct for create Volume ctx from PVC annotations
+type volumeContext struct {
+	// Default values for volume context
+	Pod                *string `json:"csi.storage.k8s.io/pod.name"`
+	PodNamespace       *string `json:"csi.storage.k8s.io/pod.namespace"`
+	PodUID             *string `json:"csi.storage.k8s.io/pod.uid"`
+	ServiceAccountName *string `json:"csi.storage.k8s.io/serviceAccount.name"`
+	Ephemeral          *string `json:"csi.storage.k8s.io/ephemeral"`
+	Provisioner        *string `json:"storage.kubernetes.io/csiProvisionerIdentity"`
+
+	// User defined annotations for PVC
+	ListenerClassName *string `json:"listeners.zncdata.dev/listener-class"` // required
+	ListenerName      *string `json:"listeners.zncdata.dev/listener-name"`  // optional
+}
+
+func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
+	v := &volumeContext{}
+	if val, ok := parameters[CSI_STORAGE_POD_NAME]; ok {
+		v.Pod = &val
+	}
+	if val, ok := parameters[CSI_STORAGE_POD_NAMESPACE]; ok {
+		v.PodNamespace = &val
+	}
+	if val, ok := parameters[CSI_STORAGE_POD_UID]; ok {
+		v.PodUID = &val
+	}
+	if val, ok := parameters[CSI_STORAGE_SERVICE_ACCOUNT_NAME]; ok {
+		v.ServiceAccountName = &val
+	}
+	if val, ok := parameters[CSI_STORAGE_EPHEMERAL]; ok {
+		v.Ephemeral = &val
+	}
+	if val, ok := parameters[STORAGE_KUBERNETES_CSI_PROVISIONER_IDENTITY]; ok {
+		v.Provisioner = &val
+	}
+	if val, ok := parameters[LISTENERS_ZNCDATA_LISTENER_CLASS]; ok {
+		v.ListenerClassName = &val
+	}
+	if val, ok := parameters[LISTENERS_ZNCDATA_LISTENER_NAME]; ok {
+		v.ListenerName = &val
+	}
+
+	return v
+}
+
 type AddressInfo struct {
 	Address     string
 	AddressType listenersv1alpha1.AddressType
@@ -77,7 +122,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	// because we delivery it from controller to node already.
 	// The following PVC annotations is required:
 	//   - listeners.zncdata.dev/class: <listener-class-name>
-	volumeContext := NewVolumeContextFromMap(request.GetVolumeContext())
+	volumeContext := newVolumeContextFromMap(request.GetVolumeContext())
 
 	if volumeContext.ListenerClassName == nil {
 		return nil, status.Error(codes.InvalidArgument, "listener class name missing in request")
@@ -99,11 +144,6 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	// mount the volume to the target path
-	if err := n.mount(targetPath); err != nil {
-		return nil, err
-	}
-
 	// get the listener
 	listener, err := n.getListener(ctx, request.GetVolumeId(), *volumeContext)
 	if err != nil {
@@ -113,6 +153,11 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	data, err := n.getAddressForPod(ctx, listener, pod)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// mount the volume to the target path
+	if err := n.mount(targetPath); err != nil {
+		return nil, err
 	}
 
 	// write the listener data to the target path
@@ -275,7 +320,7 @@ func (n *NodeServer) getPV(ctx context.Context, pvName string) (*corev1.Persiste
 // If use listener status immediately after tihs method called, when the
 // listener is createOrUpdate with listener class,
 // listener status my not updated. You can got incorrect status data.
-func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext VolumeContext) (*listenersv1alpha1.Listener, error) {
+func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext volumeContext) (*listenersv1alpha1.Listener, error) {
 
 	if volumeContext.ListenerName != nil {
 		listener := &listenersv1alpha1.Listener{}
@@ -301,7 +346,6 @@ func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeConte
 	}
 
 	// get pvc
-
 	pvc, err := n.getPVC(ctx, pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
 	if err != nil {
 		return nil, err
@@ -323,7 +367,7 @@ func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeConte
 
 func (n *NodeServer) applyListener(
 	ctx context.Context,
-	volumeContext VolumeContext,
+	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
 	labels map[string]string,
 	ports []listenersv1alpha1.PortSpec,

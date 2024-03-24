@@ -2,6 +2,9 @@ package csi
 
 const (
 	// Default values for volume context
+	CSI_STORAGE_PVC_NAME      string = "csi.storage.k8s.io/pvc/name"
+	CSI_STORAGE_PVC_NAMESPACE string = "csi.storage.k8s.io/pvc/namespace"
+
 	CSI_STORAGE_POD_NAME                        string = "csi.storage.k8s.io/pod.name"
 	CSI_STORAGE_POD_NAMESPACE                   string = "csi.storage.k8s.io/pod.namespace"
 	CSI_STORAGE_POD_UID                         string = "csi.storage.k8s.io/pod.uid"
@@ -13,6 +16,6 @@ const (
 
 const (
 	// User defined annotations for PVC
-	LISTENERS_ZNCDATA_LISTENER_CLASS string = "listeners.zncdata.dev/class-name"
+	LISTENERS_ZNCDATA_LISTENER_CLASS string = "listeners.zncdata.dev/listener-class"
 	LISTENERS_ZNCDATA_LISTENER_NAME  string = "listeners.zncdata.dev/listener-name"
 )

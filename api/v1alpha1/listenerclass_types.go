@@ -29,7 +29,7 @@ const (
 type ListenerClassSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort;ClusterIP
-	ServiceType string `json:"serviceType"`
+	ServiceType string `json:"serviceType,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`

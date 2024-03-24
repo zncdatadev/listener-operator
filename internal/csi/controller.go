@@ -28,6 +28,25 @@ var (
 	}
 )
 
+type createVolumeRequestParams struct {
+	PVCName      string
+	pvcNamespace string
+}
+
+func newCreateVolumeRequestParamsFromMap(params map[string]string) (*createVolumeRequestParams, error) {
+	pvcName, pvcNameExists := params[CSI_STORAGE_PVC_NAME]
+	pvcNamespace, pvcNamespaceExists := params[CSI_STORAGE_PVC_NAMESPACE]
+
+	if !pvcNameExists || !pvcNamespaceExists {
+		return nil, status.Error(codes.InvalidArgument, "ensure '--extra-create-metadata' args are added in the sidecar of the csi-provisioner container.")
+	}
+
+	return &createVolumeRequestParams{
+		PVCName:      pvcName,
+		pvcNamespace: pvcNamespace,
+	}, nil
+}
+
 type ControllerServer struct {
 	client  client.Client
 	volumes map[string]int64
@@ -62,7 +81,13 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	// When adding '--extra-create-metadata' args in sidecar of registry.k8s.io/sig-storage/csi-provisioner container, we can get
 	// 'csi.storage.k8s.io/pvc/name' and 'csi.storage.k8s.io/pvc/namespace' from params.
 	// ref: https://github.com/kubernetes-csi/external-provisioner?tab=readme-ov-file#command-line-options
-	volumeCtx, err := c.getVolumeContext(request.Parameters)
+	params, err := newCreateVolumeRequestParamsFromMap(request.Parameters)
+
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "Get createVolumeRequestParams error: %v", err)
+	}
+
+	volumeCtx, err := c.getVolumeContext(params)
 
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener Volume refer error: %v", err)
@@ -74,7 +99,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener class name error: %v", err)
 	}
 
-	listenerClass, err := c.getListenerClass(listenerClassName)
+	listenerClass, err := c.getListenerClass(listenerClassName, params.pvcNamespace)
 
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "ListenerClass: %q. Detail: %v", listenerClassName, err)
@@ -104,10 +129,11 @@ func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeReques
 	}
 }
 
-func (c *ControllerServer) getListenerClass(name string) (*listenersv1alph1.ListenerClass, error) {
+func (c *ControllerServer) getListenerClass(name string, namespace string) (*listenersv1alph1.ListenerClass, error) {
 	listenerClass := &listenersv1alph1.ListenerClass{}
 	err := c.client.Get(context.Background(), client.ObjectKey{
-		Name: name,
+		Name:      name,
+		Namespace: namespace,
 	}, listenerClass)
 	if err != nil {
 		return nil, err
@@ -130,10 +156,7 @@ func (c *ControllerServer) getPvc(name, namespace string) (*corev1.PersistentVol
 }
 
 // getVolumeContext gets volume ctx from PVC annotations
-//   - get PVC name and namespace from createVolumeRequestParams. createVolumeRequestParams is a map of parameters from CreateVolumeRequest,
-//     it is StorageClass.Parameters, which is set by user when creating PVC.
-//     When adding '--extra-create-metadata' args in sidecar of registry.k8s.io/sig-storage/csi-provisioner container, we can get
-//     'csi.storage.k8s.io/pvc/name' and 'csi.storage.k8s.io/pvc/namespace' from params.
+
 //   - get PVC by k8s client with PVC name and namespace, then get annotations from PVC.
 //   - get 'listeners.zncdata.dev/class' from PVC annotations, and check.
 //   - return annotations.
@@ -141,25 +164,19 @@ func (c *ControllerServer) getPvc(name, namespace string) (*corev1.PersistentVol
 // You can use custom annotations:
 //   - listeners.zncdata.dev/listener-class: <listener-class-name>	# required
 //   - listeners.zncdata.dev/listener-name: <listener-name>	# optional
-func (c *ControllerServer) getVolumeContext(createVolumeRequestParams map[string]string) (map[string]string, error) {
-	pvcName, pvcNameExists := createVolumeRequestParams["csi.storage.k8s.io/pvc/name"]
-	pvcNamespace, pvcNamespaceExists := createVolumeRequestParams["csi.storage.k8s.io/pvc/namespace"]
+func (c *ControllerServer) getVolumeContext(params *createVolumeRequestParams) (map[string]string, error) {
 
-	if !pvcNameExists || !pvcNamespaceExists {
-		return nil, status.Error(codes.InvalidArgument, "ensure '--extra-create-metadata' args are added in the sidecar of the csi-provisioner container.")
-	}
-
-	pvc, err := c.getPvc(pvcName, pvcNamespace)
+	pvc, err := c.getPvc(params.PVCName, params.pvcNamespace)
 	if err != nil {
 
-		return nil, status.Errorf(codes.NotFound, "PVC: %q, Namespace: %q. Detail: %v", pvcName, pvcNamespace, err)
+		return nil, status.Errorf(codes.NotFound, "PVC: %q, Namespace: %q. Detail: %v", params.PVCName, params.pvcNamespace, err)
 	}
 
 	annotations := pvc.GetAnnotations()
 	_, classNameExists := annotations[LISTENERS_ZNCDATA_LISTENER_CLASS]
 
 	if !classNameExists {
-		return nil, errors.New("required annotations not found in PVC")
+		return nil, errors.New("required annotations '" + LISTENERS_ZNCDATA_LISTENER_CLASS + "' not found in PVC")
 	}
 
 	return annotations, nil
