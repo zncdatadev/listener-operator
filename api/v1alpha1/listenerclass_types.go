@@ -20,11 +20,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ServiceTypeLoadBalancer = "LoadBalancer"
+	ServiceTypeNodePort     = "NodePort"
+)
+
 // ListenerClassSpec defines the desired state of ListenerClass
 type ListenerClassSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort;ClusterIP
-	ServiceType string `json:"serviceType"`
+	ServiceType string `json:"serviceType,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`

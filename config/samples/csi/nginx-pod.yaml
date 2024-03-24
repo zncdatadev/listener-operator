@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  labels:
+    name: nginx-pod
+spec:
+  serviceAccountName: zds-operator
+  containers:
+  - name: nginx-pod
+    image: nginx
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: foo
+      mountPath: /opt/foo
+      mountPropagation: Bidirectional
+  volumes:
+  - name: foo
+    ephemeral:
+      volumeClaimTemplate:
+        metadata:
+          annotations:
+            listeners.zncdata.dev/listener-class: listenerclass-sample
+            test.zncdata.dev/foo: bar
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          storageClassName: listener
+          resources:
+            requests:
+              storage: 1Mi

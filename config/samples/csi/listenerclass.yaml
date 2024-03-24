@@ -1,0 +1,12 @@
+apiVersion: listeners.zncdata.dev/v1alpha1
+kind: ListenerClass
+metadata:
+  labels:
+    app.kubernetes.io/name: listenerclass
+    app.kubernetes.io/instance: listenerclass-sample
+    app.kubernetes.io/part-of: listener-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: listener-operator
+  name: listenerclass-sample
+spec:
+  serviceType: ClusterIP
