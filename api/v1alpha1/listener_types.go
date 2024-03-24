@@ -20,6 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type AddressType string
+
+const (
+	AddressTypeHostname AddressType = "Hostname"
+	AddressTypeIP       AddressType = "IP"
+)
+
 // ListenerSpec defines the desired state of Listener
 type ListenerSpec struct {
 	// +kubebuilder:validation:Required
@@ -29,7 +36,7 @@ type ListenerSpec struct {
 	ExtraPodMatchLabels map[string]string `json:"extraPodMatchLabels,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Ports *[]PortSpec `json:"ports,omitempty"`
+	Ports []PortSpec `json:"ports,omitempty"`
 }
 
 type PortSpec struct {
@@ -45,9 +52,9 @@ type PortSpec struct {
 
 // ListenerStatus defines the observed state of Listener
 type ListenerStatus struct {
-	IngressAddress *[]IngressAddressSpec `json:"ingressAddress,omitempty"`
-	NodePorts      *[]PortSpec           `json:"nodePorts,omitempty"`
-	ServiceName    string                `json:"serviceName,omitempty"`
+	IngressAddress []IngressAddressSpec `json:"ingressAddress,omitempty"`
+	NodePorts      []PortSpec           `json:"nodePorts,omitempty"`
+	ServiceName    string               `json:"serviceName,omitempty"`
 }
 
 type IngressAddressSpec struct {
@@ -56,7 +63,7 @@ type IngressAddressSpec struct {
 
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=Hostname;IP
-	AddressType string `json:"addressType,omitempty"`
+	AddressType AddressType `json:"addressType,omitempty"`
 
 	// +kubebuilder:validation:Required
 	Ports *[]PortSpec `json:"ports,omitempty"`
