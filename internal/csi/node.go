@@ -18,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
+	"github.com/zncdata-labs/listener-operator/pkg/util"
 )
 
 // volumeContext is the struct for create Volume ctx from PVC annotations
@@ -63,16 +64,6 @@ func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
 	}
 
 	return v
-}
-
-type AddressInfo struct {
-	Address     string
-	AddressType listenersv1alpha1.AddressType
-}
-
-type ListenerIngress struct {
-	AddressInfo
-	Ports []listenersv1alpha1.PortSpec
 }
 
 var _ csi.NodeServer = &NodeServer{}
@@ -169,7 +160,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 }
 
 // writeData writes the data to the target path.
-func (n *NodeServer) writeData(targetPath string, data *ListenerIngress) error {
+func (n *NodeServer) writeData(targetPath string, data *util.ListenerIngress) error {
 
 	if data == nil {
 		log.V(1).Info("Listener data is nil, skip write data")
@@ -210,7 +201,8 @@ func (n *NodeServer) getAddressForPod(
 	ctx context.Context,
 	listener *listenersv1alpha1.Listener,
 	pod *corev1.Pod,
-) (*ListenerIngress, error) {
+) (*util.ListenerIngress, error) {
+
 	if len(listener.Status.NodePorts) != 0 {
 
 		address, err := n.getPriorNodeAddress(ctx, pod)
@@ -219,14 +211,14 @@ func (n *NodeServer) getAddressForPod(
 			return nil, err
 		}
 
-		return &ListenerIngress{
+		return &util.ListenerIngress{
 			AddressInfo: *address,
 			Ports:       listener.Status.NodePorts,
 		}, nil
 	} else if len(listener.Status.IngressAddress) != 0 {
 		for _, ingressAddress := range listener.Status.IngressAddress {
-			return &ListenerIngress{
-				AddressInfo: AddressInfo{
+			return &util.ListenerIngress{
+				AddressInfo: util.AddressInfo{
 					Address:     ingressAddress.Address,
 					AddressType: ingressAddress.AddressType,
 				},
@@ -235,10 +227,10 @@ func (n *NodeServer) getAddressForPod(
 		}
 	}
 
-	return nil, status.Error(codes.Internal, "listener address not found")
+	return &util.ListenerIngress{}, status.Error(codes.Internal, "listener address not found")
 }
 
-func (n *NodeServer) getPriorNodeAddress(ctx context.Context, pod *corev1.Pod) (*AddressInfo, error) {
+func (n *NodeServer) getPriorNodeAddress(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
 	node := &corev1.Node{}
 
 	if err := n.client.Get(ctx, client.ObjectKey{
@@ -249,17 +241,17 @@ func (n *NodeServer) getPriorNodeAddress(ctx context.Context, pod *corev1.Pod) (
 
 	for _, address := range node.Status.Addresses {
 		if address.Type == corev1.NodeExternalIP {
-			return &AddressInfo{
+			return &util.AddressInfo{
 				Address:     address.Address,
 				AddressType: listenersv1alpha1.AddressTypeIP,
 			}, nil
 		} else if address.Type == corev1.NodeInternalIP {
-			return &AddressInfo{
+			return &util.AddressInfo{
 				Address:     address.Address,
 				AddressType: listenersv1alpha1.AddressTypeIP,
 			}, nil
 		} else if address.Type == corev1.NodeHostName {
-			return &AddressInfo{
+			return &util.AddressInfo{
 				Address:     address.Address,
 				AddressType: listenersv1alpha1.AddressTypeHostname,
 			}, nil
