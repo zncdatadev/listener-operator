@@ -39,6 +39,7 @@ spec:
                   type: string
                 type: object
               serviceType:
+                description: Service Type string describes ingress methods for a service
                 enum:
                 - LoadBalancer
                 - NodePort

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
+	util "github.com/zncdata-labs/listener-operator/pkg/util"
 	storage "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,7 +53,7 @@ func (r *StorageClass) apply(ctx context.Context, obj *storage.StorageClass) (ct
 		return ctrl.Result{}, err
 	}
 
-	mutant, err := CreateOrUpdate(ctx, r.client, obj)
+	mutant, err := util.CreateOrUpdate(ctx, r.client, obj)
 	if err != nil {
 		return ctrl.Result{}, err
 	} else if mutant {

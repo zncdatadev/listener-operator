@@ -14,7 +14,7 @@ import (
 )
 
 func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object) (bool, error) {
-	logger = ctrl.Log.WithName("util")
+	logger := ctrl.Log.WithName("util")
 	key := client.ObjectKeyFromObject(obj)
 	namespace := obj.GetNamespace()
 

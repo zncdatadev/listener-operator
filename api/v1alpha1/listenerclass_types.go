@@ -20,16 +20,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Service Type string describes ingress methods for a service
+// +enum
+type ServiceType string
+
 const (
-	ServiceTypeLoadBalancer = "LoadBalancer"
-	ServiceTypeNodePort     = "NodePort"
+	ServiceTypeClusterIP    ServiceType = "ClusterIP"
+	ServiceTypeNodePort     ServiceType = "NodePort"
+	ServiceTypeLoadBalancer ServiceType = "LoadBalancer"
 )
 
 // ListenerClassSpec defines the desired state of ListenerClass
 type ListenerClassSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort;ClusterIP
-	ServiceType string `json:"serviceType,omitempty"`
+	ServiceType ServiceType `json:"serviceType"`
 
 	// +kubebuilder:validation:Optional
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
