@@ -205,7 +205,7 @@ func (n *NodeServer) getAddressForPod(
 
 	if len(listener.Status.NodePorts) != 0 {
 
-		address, err := n.getPriorNodeAddress(ctx, pod)
+		address, err := n.getNodeAddress(ctx, pod)
 
 		if err != nil {
 			return nil, err
@@ -230,7 +230,7 @@ func (n *NodeServer) getAddressForPod(
 	return &util.ListenerIngress{}, status.Error(codes.Internal, "listener address not found")
 }
 
-func (n *NodeServer) getPriorNodeAddress(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
+func (n *NodeServer) getNodeAddress(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
 	node := &corev1.Node{}
 
 	if err := n.client.Get(ctx, client.ObjectKey{
@@ -239,25 +239,8 @@ func (n *NodeServer) getPriorNodeAddress(ctx context.Context, pod *corev1.Pod) (
 		return nil, err
 	}
 
-	for _, address := range node.Status.Addresses {
-		if address.Type == corev1.NodeExternalIP {
-			return &util.AddressInfo{
-				Address:     address.Address,
-				AddressType: listenersv1alpha1.AddressTypeIP,
-			}, nil
-		} else if address.Type == corev1.NodeInternalIP {
-			return &util.AddressInfo{
-				Address:     address.Address,
-				AddressType: listenersv1alpha1.AddressTypeIP,
-			}, nil
-		} else if address.Type == corev1.NodeHostName {
-			return &util.AddressInfo{
-				Address:     address.Address,
-				AddressType: listenersv1alpha1.AddressTypeHostname,
-			}, nil
-		}
-	}
-	return nil, status.Error(codes.Internal, "node address not found")
+	return util.GetPriorNodeAddress(node)
+
 }
 
 func (n *NodeServer) getPod(ctx context.Context, podName, podNamespace string) (*corev1.Pod, error) {
