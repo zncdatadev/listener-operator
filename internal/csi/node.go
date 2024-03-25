@@ -285,7 +285,7 @@ func (*NodeServer) getPodPorts(pod *corev1.Pod) []listenersv1alpha1.PortSpec {
 		for _, port := range container.Ports {
 			ports = append(ports, listenersv1alpha1.PortSpec{
 				Name:     port.Name,
-				Protocol: string(port.Protocol),
+				Protocol: port.Protocol,
 				Port:     port.ContainerPort,
 			})
 		}

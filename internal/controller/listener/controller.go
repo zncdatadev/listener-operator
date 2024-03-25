@@ -99,7 +99,7 @@ func (r *ListenerReconciler) getServiceMatchLabeles(listener *listenersv1alpha1.
 
 func (r *ListenerReconciler) getPorts(listener *listenersv1alpha1.Listener) []corev1.ServicePort {
 	ports := []corev1.ServicePort{}
-	for _, port := range *listener.Spec.Ports {
+	for _, port := range listener.Spec.Ports {
 		ports = append(ports, corev1.ServicePort{
 			Name:       port.Name,
 			Protocol:   port.Protocol,
