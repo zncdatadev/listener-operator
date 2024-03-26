@@ -70,7 +70,7 @@ func (r *DaemonSet) Satisfied(ctx context.Context) (bool, error) {
 func (r *DaemonSet) getVolumes() []corev1.Volume {
 	return []corev1.Volume{
 		{
-			Name: VOLUMES_MOUNTPOINT_DIR_NAME,
+			Name: VolumesMountpointDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/kubelet/pods",
@@ -82,7 +82,7 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 			},
 		},
 		{
-			Name: VOLUMES_PLUGIN_DIR_NAME,
+			Name: VolumesPluginDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/kubelet/plugins" + listenersv1alpha1.GroupVersion.Group,
@@ -94,7 +94,7 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 			},
 		},
 		{
-			Name: VOLUMES_REGISTRATION_DIR_NAME,
+			Name: VolumesRegistrationDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/kubelet/plugins_registry",
@@ -184,11 +184,11 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 			{
-				Name:      VOLUMES_MOUNTPOINT_DIR_NAME,
+				Name:      VolumesMountpointDirName,
 				MountPath: "/var/lib/kubelet/pods",
 			},
 		},
@@ -219,11 +219,11 @@ func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDrive
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_REGISTRATION_DIR_NAME,
+				Name:      VolumesRegistrationDirName,
 				MountPath: "/registration",
 			},
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 		},
@@ -251,7 +251,7 @@ func (r *DaemonSet) makeProvisioner(sidecar *listenersv1alpha1.CSIProvisionerSpe
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 		},
@@ -283,7 +283,7 @@ func (r *DaemonSet) makeLivenessProbe(sidecar *listenersv1alpha1.LivenessProbeSp
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 		},
