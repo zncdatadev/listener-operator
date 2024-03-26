@@ -34,7 +34,7 @@ spec:
           spec:
             description: ListenerCSISpec defines the desired state of ListenerCSI
             properties:
-              csiPlugin:
+              csiDriver:
                 properties:
                   logging:
                     properties:
@@ -50,7 +50,7 @@ spec:
                     - Never
                     type: string
                   repository:
-                    default: quay.io/zncdata/listener-csi-plugin
+                    default: quay.io/zncdata/listener-csi-driver
                     type: string
                   tag:
                     default: v0.0.1

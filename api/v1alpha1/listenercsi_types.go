@@ -23,34 +23,34 @@ import (
 const (
 
 	// default values
-	CSIPLUGIN_IMAGE_REPOSITORY = "quay.io/zncdata/listener-csi-plugin"
-	CSIPLUGIN_IMAGE_TAG        = "v0.0.1"
-	CSIPLUGIN_IMAGE_PULLPOLICY = "IfNotPresent"
+	CSIDriverImageRepository = "quay.io/zncdata/listener-csi-driver"
+	CSIDriverImageTag        = "v0.0.1"
+	CSIDriverImagePullpolicy = "IfNotPresent"
 
-	NODE_DRIVER_REGISTER_IMAGE_REPOSITORY = "registry.k8s.io/sig-storage/csi-node-driver-registrar"
-	NODE_DRIVER_REGISTER_IMAGE_TAG        = "v2.8.0"
-	NODE_DRIVER_REGISTER_IMAGE_PULLPOLICY = "IfNotPresent"
+	NodeDriverRegisterImageRepository = "registry.k8s.io/sig-storage/csi-node-driver-registrar"
+	NodeDriverRegisterImageTag        = "v2.8.0"
+	NodeDriverRegisterImagePullPolicy = "IfNotPresent"
 
-	CSI_PROVISIONER_IMAGE_REPOSITORY = "registry.k8s.io/sig-storage/csi-provisioner"
-	CSI_PROVISIONER_IMAGE_TAG        = "v3.5.0"
-	CSI_PROVISIONER_IMAGE_PULLPOLICY = "IfNotPresent"
+	CSIProvisionerImageRepository = "registry.k8s.io/sig-storage/csi-provisioner"
+	CSIProvisionerImageTag        = "v3.5.0"
+	CSIProvisionerImagePullPolicy = "IfNotPresent"
 
-	LIVENESS_PROBE_IMAGE_REPOSITORY = "registry.k8s.io/sig-storage/livenessprobe"
-	LIVENESS_PROBE_IMAGE_TAG        = "v2.11.0"
-	LIVENESS_PROBE_IMAGE_PULLPOLICY = "IfNotPresent"
+	LivenessProbeImageRepository = "registry.k8s.io/sig-storage/livenessprobe"
+	LivenessProbeImageTag        = "v2.11.0"
+	LivenessProbeImagePullPolicy = "IfNotPresent"
 )
 
 // ListenerCSISpec defines the desired state of ListenerCSI
 type ListenerCSISpec struct {
-	CSIPlugin          *CSIPluginSpec          `json:"csiPlugin,omitempty"`
+	CSIDriver          *CSIDriverSpec          `json:"csiDriver,omitempty"`
 	NodeDriverRegister *NodeDriverRegisterSpec `json:"nodeDriverRegister,omitempty"`
 	CSIProvisioner     *CSIProvisionerSpec     `json:"csiProvisioner,omitempty"`
 	LivenessProbe      *LivenessProbeSpec      `json:"livenessProbe,omitempty"`
 }
 
-type CSIPluginSpec struct {
+type CSIDriverSpec struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:="quay.io/zncdata/listener-csi-plugin"
+	// +kubebuilder:default:="quay.io/zncdata/listener-csi-driver"
 	Repository string `json:"repository,omitempty"`
 
 	// +kubebuilder:validation:Optional

@@ -1,0 +1,59 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: listener-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: ListenerClass is the Schema for the listenerclasses API
+      displayName: Listener Class
+      kind: ListenerClass
+      name: listenerclasses.listeners.zncdata.dev
+      version: v1alpha1
+    - description: ListenerCSI is the Schema for the listenercsis API
+      displayName: Listener CSI
+      kind: ListenerCSI
+      name: listenercsis.listeners.zncdata.dev
+      version: v1alpha1
+    - description: Listener is the Schema for the listeners API
+      displayName: Listener
+      kind: Listener
+      name: listeners.listeners.zncdata.dev
+      version: v1alpha1
+  description: listener operator
+  displayName: listener-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - listener
+  - operator
+  links:
+  - name: Listener Operator
+    url: https://listener-operator.domain
+  maintainers:
+  - email: huagang517@126.com
+    name: huagang
+  maturity: alpha
+  provider:
+    name: zncdata-labs
+    url: https://github.com/zncdata-labs
+  version: 0.0.0
