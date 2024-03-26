@@ -126,7 +126,7 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 					ServiceAccountName: r.serviceAccount,
 					Volumes:            r.getVolumes(),
 					Containers: []corev1.Container{
-						*r.makeCSIPluginContainer(r.listener.CSIPlugin),
+						*r.makeCSIDriverContainer(r.listener.CSIDriver),
 						*r.makeNodeDriverRegistrar(r.listener.NodeDriverRegister),
 						*r.makeProvisioner(r.listener.CSIProvisioner),
 						*r.makeLivenessProbe(r.listener.LivenessProbe),
@@ -142,7 +142,7 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 	return obj, nil
 }
 
-func (r *DaemonSet) makeCSIPluginContainer(csi *listenersv1alpha1.CSIPluginSpec) *corev1.Container {
+func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec) *corev1.Container {
 	privileged := true
 	runAsUser := int64(0)
 	obj := &corev1.Container{
