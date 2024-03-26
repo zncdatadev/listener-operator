@@ -127,7 +127,7 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 					Volumes:            r.getVolumes(),
 					Containers: []corev1.Container{
 						*r.makeCSIDriverContainer(r.listener.CSIDriver),
-						*r.makeNodeDriverRegistrar(r.listener.NodeDriverRegister),
+						*r.makeNodeDriverRegistrar(r.listener.NodeDriverRegistrar),
 						*r.makeProvisioner(r.listener.CSIProvisioner),
 						*r.makeLivenessProbe(r.listener.LivenessProbe),
 					},
@@ -187,7 +187,7 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 	return obj
 }
 
-func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDriverRegisterSpec) *corev1.Container {
+func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDriverRegistrarSpec) *corev1.Container {
 	obj := &corev1.Container{
 		Name:            "node-driver-registrar",
 		Image:           sidecar.Repository + ":" + sidecar.Tag,

@@ -27,9 +27,9 @@ const (
 	CSIDriverImageTag        = "v0.0.1"
 	CSIDriverImagePullpolicy = "IfNotPresent"
 
-	NodeDriverRegisterImageRepository = "registry.k8s.io/sig-storage/csi-node-driver-registrar"
-	NodeDriverRegisterImageTag        = "v2.8.0"
-	NodeDriverRegisterImagePullPolicy = "IfNotPresent"
+	NodeDriverRegistrarImageRepository = "registry.k8s.io/sig-storage/csi-node-driver-registrar"
+	NodeDriverRegistrarImageTag        = "v2.8.0"
+	NodeDriverRegistrarImagePullPolicy = "IfNotPresent"
 
 	CSIProvisionerImageRepository = "registry.k8s.io/sig-storage/csi-provisioner"
 	CSIProvisionerImageTag        = "v3.5.0"
@@ -42,10 +42,10 @@ const (
 
 // ListenerCSISpec defines the desired state of ListenerCSI
 type ListenerCSISpec struct {
-	CSIDriver          *CSIDriverSpec          `json:"csiDriver,omitempty"`
-	NodeDriverRegister *NodeDriverRegisterSpec `json:"nodeDriverRegister,omitempty"`
-	CSIProvisioner     *CSIProvisionerSpec     `json:"csiProvisioner,omitempty"`
-	LivenessProbe      *LivenessProbeSpec      `json:"livenessProbe,omitempty"`
+	CSIDriver           *CSIDriverSpec           `json:"csiDriver,omitempty"`
+	NodeDriverRegistrar *NodeDriverRegistrarSpec `json:"nodeDriverRegistrar,omitempty"`
+	CSIProvisioner      *CSIProvisionerSpec      `json:"csiProvisioner,omitempty"`
+	LivenessProbe       *LivenessProbeSpec       `json:"livenessProbe,omitempty"`
 }
 
 type CSIDriverSpec struct {
@@ -66,7 +66,7 @@ type CSIDriverSpec struct {
 	Logging *LoggingSpec `json:"logging,omitempty"`
 }
 
-type NodeDriverRegisterSpec struct {
+type NodeDriverRegistrarSpec struct {
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:="registry.k8s.io/sig-storage/csi-node-driver-registrar"
