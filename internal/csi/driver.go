@@ -6,11 +6,16 @@ import (
 
 	"github.com/zncdata-labs/listener-operator/internal/csi/version"
 	"k8s.io/utils/mount"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	DefaultDriverName = "listeners.zncdata.dev"
+)
+
+var (
+	log = ctrl.Log.WithName("listener-csi-driver")
 )
 
 type Driver struct {

@@ -34,6 +34,7 @@ import (
 
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
 	"github.com/zncdata-labs/listener-operator/internal/controller"
+	listenercontroller "github.com/zncdata-labs/listener-operator/internal/controller/listener"
 	listenercsicontroller "github.com/zncdata-labs/listener-operator/internal/controller/listenercsi"
 	//+kubebuilder:scaffold:imports
 )
@@ -97,7 +98,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ListenerClass")
 		os.Exit(1)
 	}
-	if err = (&controller.ListenerReconciler{
+	if err = (&listenercontroller.ListenerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

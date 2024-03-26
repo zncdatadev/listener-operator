@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -44,7 +45,7 @@ type PortSpec struct {
 	Name string `json:"name,omitempty"`
 
 	// +kubebuilder:validation:Required
-	Protocol string `json:"protocol,omitempty"`
+	Protocol corev1.Protocol `json:"protocol,omitempty"`
 
 	// +kubebuilder:validation:Required
 	Port int32 `json:"port,omitempty"`

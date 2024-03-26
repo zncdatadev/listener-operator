@@ -18,6 +18,7 @@ spec:
         cpu: "500m"
     ports:
     - containerPort: 80
+      name: http
     volumeMounts:
     - name: foo
       mountPath: /opt/foo
@@ -28,7 +29,7 @@ spec:
       volumeClaimTemplate:
         metadata:
           annotations:
-            listeners.zncdata.dev/listener-class: listenerclass-sample
+            listeners.zncdata.dev/listener-class: listenerclass-foo
             test.zncdata.dev/foo: bar
         spec:
           accessModes: ["ReadWriteOnce"]
