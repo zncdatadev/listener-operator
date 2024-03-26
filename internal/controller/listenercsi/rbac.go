@@ -35,25 +35,13 @@ func (r *RBAC) apply(ctx context.Context) (ctrl.Result, error) {
 
 	sa, clusterRole, clusterRoleBinding := r.build()
 
-	if err := ctrl.SetControllerReference(r.cr, sa, r.client.Scheme()); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := ctrl.SetControllerReference(r.cr, clusterRole, r.client.Scheme()); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := ctrl.SetControllerReference(r.cr, clusterRoleBinding, r.client.Scheme()); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if mutant, err := util.CreateOrUpdate(ctx, r.client, sa); err != nil {
+	if mutant, err := util.CreateOrUpdate(ctx, r.client, clusterRole); err != nil {
 		return ctrl.Result{}, err
 	} else if mutant {
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
-	if mutant, err := util.CreateOrUpdate(ctx, r.client, clusterRole); err != nil {
+	if mutant, err := util.CreateOrUpdate(ctx, r.client, sa); err != nil {
 		return ctrl.Result{}, err
 	} else if mutant {
 		return ctrl.Result{RequeueAfter: time.Second}, nil
@@ -73,7 +61,6 @@ func (r *RBAC) build() (*corev1.ServiceAccount, *rbacv1.ClusterRole, *rbacv1.Clu
 
 	sa := r.buildServiceAccount()
 	clusterRole := r.buildClusterRole()
-
 	clusterRoleBinding := r.buildClusterRoleBinding()
 
 	return sa, clusterRole, clusterRoleBinding
@@ -83,7 +70,8 @@ func (r *RBAC) buildServiceAccount() *corev1.ServiceAccount {
 
 	obj := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: CSI_SERVICEACCOUNT_NAME,
+			Name:      CSI_SERVICEACCOUNT_NAME,
+			Namespace: r.cr.GetNamespace(),
 		},
 	}
 	return obj

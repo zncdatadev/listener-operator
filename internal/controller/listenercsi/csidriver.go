@@ -39,8 +39,7 @@ func (r *CSIDriver) build() *storage.CSIDriver {
 
 	obj := &storage.CSIDriver{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "listeners.zncdata.dev",
-			Namespace: r.cr.GetNamespace(),
+			Name: "listeners.zncdata.dev",
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by": "listener-operator",
 			},
@@ -60,10 +59,6 @@ func (r *CSIDriver) build() *storage.CSIDriver {
 }
 
 func (r *CSIDriver) apply(ctx context.Context, obj *storage.CSIDriver) (ctrl.Result, error) {
-
-	if err := ctrl.SetControllerReference(r.cr, obj, r.client.Scheme()); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	if mutant, err := util.CreateOrUpdate(ctx, r.client, obj); err != nil {
 		return ctrl.Result{}, err

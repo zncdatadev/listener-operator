@@ -110,6 +110,14 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 
 func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 
+	labels := map[string]string{
+		"app.kubenetes.io/name":        "csi-plugin",
+		"app.kubernetes.io/instance":   r.cr.GetName(),
+		"app.kubernetes.io/part-of":    "listener-csi",
+		"app.kubernetes.io/managed-by": "listener-operator",
+		"app.kubernetes.io/created-by": "listener-operator",
+	}
+
 	obj := &appv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.getName(),
@@ -117,11 +125,13 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 		},
 		Spec: appv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": r.getName(),
-				},
+				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+
 				Spec: corev1.PodSpec{
 					ServiceAccountName: r.serviceAccount,
 					Volumes:            r.getVolumes(),
