@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
+	util "github.com/zncdata-labs/listener-operator/pkg/util"
 )
 
 var (
@@ -54,9 +55,9 @@ type ListenerReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	instance := &listenersv1alpha1.Listener{}
+	existInstance := &listenersv1alpha1.Listener{}
 
-	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, existInstance); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			logger.V(5).Info("Listener resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
@@ -64,6 +65,7 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		logger.Error(err, "Failed to get Listener")
 		return ctrl.Result{}, err
 	}
+	instance := existInstance.DeepCopy()
 
 	logger.V(1).Info("Reconciling Listener", "Name", instance.Name)
 
@@ -148,9 +150,15 @@ func (r *ListenerReconciler) getServiceTypeFromListenerClass(
 
 func (r *ListenerReconciler) getServiceMatchLabeles(listener *listenersv1alpha1.Listener) (map[string]string, error) {
 	labels := map[string]string{}
-	for key, value := range listener.Spec.ExtraPodMatchLabels {
-		labels[key] = value
+
+	if listener.Spec.ExtraPodMatchLabels != nil {
+		for k, v := range listener.Spec.ExtraPodMatchLabels {
+			labels[k] = v
+		}
 	}
+
+	labels[util.LISTENERS_ZNCDATA_LISTENER_CLASS] = listener.GetName()
+
 	return labels, nil
 }
 
@@ -162,9 +170,6 @@ func (r *ListenerReconciler) buildListenerStatus(
 	status := &listenersv1alpha1.ListenerStatus{
 		ServiceName: listener.Name,
 	}
-
-	ports := listener.Spec.Ports
-
 	svcReconciler := &ServiceReconciler{
 		client: client,
 		cr:     listener,
@@ -176,10 +181,16 @@ func (r *ListenerReconciler) buildListenerStatus(
 	}
 
 	serviceType := svcReconciler.getServiceType(service)
+	servicePorts, err := svcReconciler.getPorts(service)
+	if err != nil {
+		return nil, err
+	}
 
+	// update service NodePorts to status when service type is NodePort
 	switch serviceType {
 	case listenersv1alpha1.ServiceTypeNodePort:
-		status.NodePorts, err = svcReconciler.getNodePorts(service)
+
+		ports, err := svcReconciler.getNodePorts(service)
 		if err != nil {
 			return nil, err
 		}
@@ -196,6 +207,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 				Ports:       &ports,
 			})
 		}
+		status.NodePorts = ports
 	case listenersv1alpha1.ServiceTypeLoadBalancer:
 		address, err := svcReconciler.getLbIngressAddress(service)
 		if err != nil {
@@ -204,7 +216,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 		status.IngressAddress = append(status.IngressAddress, listenersv1alpha1.IngressAddressSpec{
 			Address:     address,
 			AddressType: listenersv1alpha1.AddressTypeIP,
-			Ports:       &ports,
+			Ports:       &servicePorts,
 		})
 	case listenersv1alpha1.ServiceTypeClusterIP:
 		address, err := svcReconciler.getClusterIp(service)
@@ -214,7 +226,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 		status.IngressAddress = append(status.IngressAddress, listenersv1alpha1.IngressAddressSpec{
 			Address:     address,
 			AddressType: listenersv1alpha1.AddressTypeIP,
-			Ports:       &ports,
+			Ports:       &servicePorts,
 		})
 	default:
 		return nil, errors.New("unknown service type: " + string(serviceType))
@@ -228,7 +240,6 @@ func (r *ListenerReconciler) updateListener(ctx context.Context, listener *liste
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
 	return ctrl.Result{}, nil
 }
 

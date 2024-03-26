@@ -9,4 +9,4 @@ metadata:
     app.kubernetes.io/created-by: listener-operator
   name: listenerclass-sample
 spec:
-  # TODO(user): Add fields here
+  serviceType: ClusterIP

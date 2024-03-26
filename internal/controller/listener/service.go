@@ -13,9 +13,8 @@ import (
 )
 
 type ServiceReconciler struct {
-	client          client.Client
-	cr              *listenersv1alpha1.Listener
-	name, namespace string
+	client client.Client
+	cr     *listenersv1alpha1.Listener
 }
 
 func NewServiceReconciler(
@@ -23,38 +22,43 @@ func NewServiceReconciler(
 	cr *listenersv1alpha1.Listener,
 ) *ServiceReconciler {
 	return &ServiceReconciler{
-		client:    client,
-		cr:        cr,
-		name:      cr.Status.ServiceName,
-		namespace: cr.Namespace,
+		client: client,
+		cr:     cr,
 	}
 }
 
 func (s *ServiceReconciler) createService(
 	ctx context.Context,
-	labels map[string]string,
+	podSelector map[string]string,
 	serviceType corev1.ServiceType,
 ) (ctrl.Result, error) {
 
 	ports := []corev1.ServicePort{}
 
 	for _, port := range s.cr.Spec.Ports {
-		ports = append(ports, corev1.ServicePort{
-			Name:     port.Name,
-			Protocol: port.Protocol,
-			Port:     port.Port,
-		})
+		if port.Name != "" {
+			ports = append(ports, corev1.ServicePort{
+				Name:     port.Name,
+				Protocol: port.Protocol,
+				Port:     port.Port,
+			})
+		} else {
+			logger.V(1).Info("port name is empty, so ignore it", "port", port)
+		}
+	}
+
+	if len(ports) == 0 {
+		return ctrl.Result{}, errors.New("could not find any valid ports in listener: " + s.cr.Name + " namespace: " + s.cr.Namespace)
 	}
 
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.getName(),
 			Namespace: s.getNamespace(),
-			Labels:    labels,
 		},
 		Spec: corev1.ServiceSpec{
 			Ports:    ports,
-			Selector: labels,
+			Selector: podSelector,
 			Type:     serviceType,
 		},
 	}
@@ -63,9 +67,9 @@ func (s *ServiceReconciler) createService(
 		return ctrl.Result{}, err
 	}
 
-	if munant, err := util.CreateOrUpdate(ctx, s.client, service); err != nil {
+	if mutant, err := util.CreateOrUpdate(ctx, s.client, service); err != nil {
 		return ctrl.Result{}, err
-	} else if munant {
+	} else if mutant {
 		// we need to requeue the request to update the service immediately!
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -74,11 +78,11 @@ func (s *ServiceReconciler) createService(
 }
 
 func (s *ServiceReconciler) getName() string {
-	return s.name
+	return s.cr.Name
 }
 
 func (s *ServiceReconciler) getNamespace() string {
-	return s.namespace
+	return s.cr.Namespace
 }
 
 func (s *ServiceReconciler) describe(
@@ -86,14 +90,14 @@ func (s *ServiceReconciler) describe(
 ) (*corev1.Service, error) {
 	service := &corev1.Service{}
 	key := client.ObjectKey{
-		Namespace: s.getNamespace(),
+		Namespace: s.cr.Namespace,
 		Name:      s.getName(),
 	}
 
 	if err := s.client.Get(ctx, key, service); err != nil {
 		return nil, err
 	}
-
+	logger.V(5).Info("get service", "service", service.Name, "namespace", service.Namespace)
 	return service, nil
 }
 
@@ -105,13 +109,35 @@ func (s *ServiceReconciler) getNodePorts(service *corev1.Service) ([]listenersv1
 
 	ports := []listenersv1alpha1.PortSpec{}
 	for _, port := range service.Spec.Ports {
-		ports = append(ports, listenersv1alpha1.PortSpec{
-			Name:     port.Name,
-			Protocol: port.Protocol,
-			Port:     port.NodePort,
-		})
+		if port.Name != "" {
+			ports = append(ports, listenersv1alpha1.PortSpec{
+				Name:     port.Name,
+				Protocol: port.Protocol,
+				Port:     port.NodePort,
+			})
+		} else {
+			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
+		}
 	}
 	return ports, nil
+}
+
+func (s *ServiceReconciler) getPorts(service *corev1.Service) ([]listenersv1alpha1.PortSpec, error) {
+	ports := []listenersv1alpha1.PortSpec{}
+	for _, port := range service.Spec.Ports {
+		if port.Name != "" {
+			ports = append(ports, listenersv1alpha1.PortSpec{
+				Name:     port.Name,
+				Protocol: port.Protocol,
+				Port:     port.Port,
+			})
+		} else {
+			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
+		}
+
+	}
+	return ports, nil
+
 }
 
 func (s *ServiceReconciler) getLbIngressAddress(

@@ -13,9 +13,3 @@ const (
 	STORAGE_KUBERNETES_CSI_PROVISIONER_IDENTITY string = "storage.kubernetes.io/csiProvisionerIdentity"
 	VOLUME_KUBERNETES_STORAGE_PROVISIONER       string = "volume.kubernetes.io/storage-provisioner"
 )
-
-const (
-	// User defined annotations for PVC
-	LISTENERS_ZNCDATA_LISTENER_CLASS string = "listeners.zncdata.dev/listener-class"
-	LISTENERS_ZNCDATA_LISTENER_NAME  string = "listeners.zncdata.dev/listener-name"
-)

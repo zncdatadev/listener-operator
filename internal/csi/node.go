@@ -14,11 +14,11 @@ import (
 	"k8s.io/utils/mount"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
 	"github.com/zncdata-labs/listener-operator/pkg/util"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // volumeContext is the struct for create Volume ctx from PVC annotations
@@ -56,10 +56,10 @@ func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
 	if val, ok := parameters[STORAGE_KUBERNETES_CSI_PROVISIONER_IDENTITY]; ok {
 		v.Provisioner = &val
 	}
-	if val, ok := parameters[LISTENERS_ZNCDATA_LISTENER_CLASS]; ok {
+	if val, ok := parameters[util.LISTENERS_ZNCDATA_LISTENER_CLASS]; ok {
 		v.ListenerClassName = &val
 	}
-	if val, ok := parameters[LISTENERS_ZNCDATA_LISTENER_NAME]; ok {
+	if val, ok := parameters[util.LISTENERS_ZNCDATA_LISTENER_NAME]; ok {
 		v.ListenerName = &val
 	}
 
@@ -135,13 +135,19 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	// get the listener
+	// get the listener if listener name already exist volume context,
+	// else create or update by listener class and pod info.
 	listener, err := n.getListener(ctx, request.GetVolumeId(), *volumeContext)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	data, err := n.getAddressForPod(ctx, listener, pod)
+	// update pod label with listener name
+	if err := n.patchPodLabelWithListener(ctx, pod, listener.GetName()); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	data, err := n.getAddresses(ctx, listener, pod)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -167,6 +173,8 @@ func (n *NodeServer) writeData(targetPath string, data *util.ListenerIngress) er
 		return nil
 	}
 
+	log.V(5).Info("Write data to target path", "targetPath", targetPath, "data", data)
+
 	// mkdir addresses path
 	addressesPath := filepath.Join(targetPath, "addresses")
 	if err := os.MkdirAll(addressesPath, 0750); err != nil {
@@ -186,27 +194,52 @@ func (n *NodeServer) writeData(targetPath string, data *util.ListenerIngress) er
 
 	// make ports path in address
 	listenerAddressPortPath := filepath.Join(listenerAddressPath, "ports")
+	if err := os.MkdirAll(listenerAddressPortPath, 0750); err != nil {
+		return err
+	}
 
 	// write ports
 	for _, port := range data.Ports {
-		portStr := strconv.Itoa(int(port.Port))
-		if err := os.WriteFile(filepath.Join(listenerAddressPortPath, port.Name), []byte(portStr), fs.FileMode(0644)); err != nil {
-			return err
+		if port.Name != "" {
+			portStr := strconv.Itoa(int(port.Port))
+			if err := os.WriteFile(filepath.Join(listenerAddressPortPath, port.Name), []byte(portStr), fs.FileMode(0644)); err != nil {
+				return err
+			}
+		} else {
+			log.V(1).Info("port name is empty, we could not write to empty file name, so ignore it", "port", port, "address", data.Address)
 		}
 	}
 	return nil
 }
 
-func (n *NodeServer) getAddressForPod(
+func (n *NodeServer) patchPodLabelWithListener(
+	ctx context.Context,
+	pod *corev1.Pod,
+	listenerName string,
+) error {
+	// patch pod label with listener name
+	copyedPod := pod.DeepCopy()
+	if copyedPod.Labels == nil {
+		copyedPod.Labels = map[string]string{}
+	}
+
+	copyedPod.Labels[util.LISTENERS_ZNCDATA_LISTENER_NAME] = listenerName
+	if err := n.client.Patch(ctx, copyedPod, client.MergeFrom(pod)); err != nil {
+		log.Error(err, "Patch pod label error", "pod", pod.Name, "namespace", pod.Namespace)
+		return err
+	}
+	log.V(5).Info("Pod label patched with listener name", "pod", pod.Name, "namespace", pod.Namespace, "patchedLabels", copyedPod.Labels)
+	return nil
+}
+
+func (n *NodeServer) getAddresses(
 	ctx context.Context,
 	listener *listenersv1alpha1.Listener,
 	pod *corev1.Pod,
 ) (*util.ListenerIngress, error) {
 
 	if len(listener.Status.NodePorts) != 0 {
-
-		address, err := n.getNodeAddress(ctx, pod)
-
+		address, err := n.getNodeAddressByPod(ctx, pod)
 		if err != nil {
 			return nil, err
 		}
@@ -226,11 +259,11 @@ func (n *NodeServer) getAddressForPod(
 			}, nil
 		}
 	}
-
+	log.V(5).Info("Listener status not found", "listener", listener.Name, "namespace", listener.Namespace)
 	return &util.ListenerIngress{}, status.Error(codes.Internal, "listener address not found")
 }
 
-func (n *NodeServer) getNodeAddress(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
+func (n *NodeServer) getNodeAddressByPod(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
 	node := &corev1.Node{}
 
 	if err := n.client.Get(ctx, client.ObjectKey{
@@ -254,18 +287,28 @@ func (n *NodeServer) getPod(ctx context.Context, podName, podNamespace string) (
 	return pod, nil
 }
 
-func (*NodeServer) getPodPorts(pod *corev1.Pod) []listenersv1alpha1.PortSpec {
+func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]listenersv1alpha1.PortSpec, error) {
 	ports := []listenersv1alpha1.PortSpec{}
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
-			ports = append(ports, listenersv1alpha1.PortSpec{
-				Name:     port.Name,
-				Protocol: port.Protocol,
-				Port:     port.ContainerPort,
-			})
+			if port.Name != "" {
+				ports = append(ports, listenersv1alpha1.PortSpec{
+					Name:     port.Name,
+					Protocol: port.Protocol,
+					Port:     port.ContainerPort,
+				})
+			} else {
+				log.V(1).Info("port name is empty, so ignore to add listener", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
+			}
 		}
 	}
-	return ports
+
+	if len(ports) == 0 {
+		log.V(1).Info("pod has no vaild ports, please ensure all port has name", "pod", pod.Name, "namespace", pod.Namespace)
+		return nil, status.Error(codes.Internal, "pod has no vaild ports, please ensure all port has name")
+	}
+
+	return ports, nil
 }
 
 func (n *NodeServer) getPVC(ctx context.Context, pvcName, pvcNamespace string) (*corev1.PersistentVolumeClaim, error) {
@@ -294,7 +337,8 @@ func (n *NodeServer) getPV(ctx context.Context, pvName string) (*corev1.Persiste
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // If use listener status immediately after tihs method called, when the
 // listener is createOrUpdate with listener class,
-// listener status my not updated. You can got incorrect status data.
+// listener status my not updated, then you will get error.
+// Do not warry, we can get listener status in the next time.
 func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext volumeContext) (*listenersv1alpha1.Listener, error) {
 
 	if volumeContext.ListenerName != nil {
@@ -326,53 +370,78 @@ func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeConte
 		return nil, err
 	}
 
-	// apply the listener
-	listener, err := n.applyListener(
+	// Note: all port name must be set, otherwise it will raise error
+	ports, err := n.getPodPorts(pod)
+	if err != nil {
+		return nil, err
+	}
+
+	// get listener when listener name exist in volume context,·
+	// else create or update a listener by listener class and pod info.
+	listener, err := n.createOrUpdateListener(
 		ctx,
 		volumeContext,
 		pv,
 		pvc.GetObjectMeta().GetLabels(),
-		n.getPodPorts(pod),
+		ports,
 	)
 	if err != nil {
 		return nil, err
 	}
+
 	return listener, nil
 }
 
-func (n *NodeServer) applyListener(
+func (n *NodeServer) createOrUpdateListener(
 	ctx context.Context,
 	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
 	labels map[string]string,
 	ports []listenersv1alpha1.PortSpec,
 ) (*listenersv1alpha1.Listener, error) {
-	listener := n.buildListener(
+
+	listener, err := n.buildListener(
 		*volumeContext.Pod,
 		*volumeContext.PodNamespace,
+		pv,
 		labels,
 		*volumeContext.ListenerClassName,
 		ports,
 	)
 
-	// set the owner reference
-	if err := ctrl.SetControllerReference(pv, listener, n.client.Scheme()); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	if _, err := CreateOrUpdate(ctx, n.client, listener); err != nil {
+	if err := n.client.Get(ctx, client.ObjectKey{
+		Name:      listener.Name,
+		Namespace: listener.Namespace,
+	}, listener); errors.IsNotFound(err) {
+		log.V(5).Info("Listener not found, create listener", "listener", listener.Name, "namespace", listener.Namespace)
+		if err := n.client.Create(ctx, listener); err != nil {
+			return nil, err
+		}
+	} else if err == nil {
+		log.V(5).Info("Listener found, update listener", "listener", listener.Name, "namespace", listener.Namespace)
+		if err := n.client.Update(ctx, listener); err != nil {
+			return nil, err
+		}
+	} else {
+		log.Error(err, "Get listener error")
 		return nil, err
 	}
+
 	return listener, nil
 }
 
 func (n *NodeServer) buildListener(
 	podName string,
 	podNamespace string,
+	owner client.Object,
 	labales map[string]string,
 	listenerClassName string,
 	ports []listenersv1alpha1.PortSpec,
-) *listenersv1alpha1.Listener {
+) (*listenersv1alpha1.Listener, error) {
 
 	obj := &listenersv1alpha1.Listener{
 		Spec: listenersv1alpha1.ListenerSpec{
@@ -386,7 +455,13 @@ func (n *NodeServer) buildListener(
 			Labels:    labales,
 		},
 	}
-	return obj
+
+	// set the owner reference
+	if err := ctrl.SetControllerReference(owner, obj, n.client.Scheme()); err != nil {
+		return nil, err
+	}
+
+	return obj, nil
 }
 
 // mount mounts the volume to the target path.
@@ -403,7 +478,7 @@ func (n *NodeServer) mount(targetPath string) error {
 	if exist, err := mount.PathExists(targetPath); err != nil {
 		return status.Error(codes.Internal, err.Error())
 	} else if exist {
-		return status.Error(codes.Internal, "target path already exists")
+		return status.Error(codes.Internal, "target path "+targetPath+" already exists")
 	} else {
 		if err := os.MkdirAll(targetPath, 0750); err != nil {
 			return status.Error(codes.Internal, err.Error())
@@ -448,6 +523,8 @@ func (n *NodeServer) NodeUnpublishVolume(ctx context.Context, request *csi.NodeU
 	if err := os.RemoveAll(targetPath); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+
+	log.V(5).Info("Volume unpublished", "volumeID", request.GetVolumeId(), "targetPath", targetPath)
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }

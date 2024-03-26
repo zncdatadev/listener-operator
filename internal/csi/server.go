@@ -7,14 +7,9 @@ import (
 	"time"
 
 	"google.golang.org/grpc/reflection"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc"
-)
-
-var (
-	log = ctrl.Log.WithName("csi")
 )
 
 // NonBlockingServer Defines Non blocking GRPC server interfaces
