@@ -243,13 +243,14 @@ func (n *NodeServer) getAddresses(
 		if err != nil {
 			return nil, err
 		}
-
+		log.V(5).Info("get address from listener status", "address", address, "listener", listener.Name, "namespace", listener.Namespace)
 		return &util.ListenerIngress{
 			AddressInfo: *address,
 			Ports:       listener.Status.NodePorts,
 		}, nil
 	} else if len(listener.Status.IngressAddress) != 0 {
 		for _, ingressAddress := range listener.Status.IngressAddress {
+			log.V(5).Info("get address from listener status", "address", ingressAddress, "listener", listener.Name, "namespace", listener.Namespace)
 			return &util.ListenerIngress{
 				AddressInfo: util.AddressInfo{
 					Address:     ingressAddress.Address,
@@ -259,8 +260,8 @@ func (n *NodeServer) getAddresses(
 			}, nil
 		}
 	}
-	log.V(5).Info("Listener status not found", "listener", listener.Name, "namespace", listener.Namespace)
-	return &util.ListenerIngress{}, status.Error(codes.Internal, "listener address not found")
+	log.V(5).Info("can not found address from listener status", "listener", listener.Name, "namespace", listener.Namespace)
+	return &util.ListenerIngress{}, status.Error(codes.Internal, "can not found address from listener status")
 }
 
 func (n *NodeServer) getNodeAddressByPod(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
