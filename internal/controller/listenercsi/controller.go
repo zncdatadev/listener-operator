@@ -77,21 +77,21 @@ func (r *ListenerCSIReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if result, err := NewRBAC(r.Client, instance).Reconcile(ctx); err != nil {
 		return result, err
-	} else if result.Requeue {
+	} else if result.RequeueAfter > 0 {
 		return result, nil
 	}
 
 	if result, err := NewStorageClass(r.Client, instance).Reconcile(ctx); err != nil {
 		return result, err
-	} else if result.Requeue {
+	} else if result.RequeueAfter > 0 {
 		return result, nil
 	}
 
-	daemonSet := NewDaemonSet(r.Client, instance, CSI_SERVICEACCOUNT_NAME)
+	daemonSet := NewDaemonSet(r.Client, instance, CSIServiceAccountName)
 
 	if result, err := daemonSet.Reconcile(ctx); err != nil {
 		return result, err
-	} else if result.Requeue {
+	} else if result.RequeueAfter > 0 {
 		return result, nil
 	}
 

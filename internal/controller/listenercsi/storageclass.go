@@ -36,8 +36,7 @@ func (r *StorageClass) build() *storage.StorageClass {
 
 	obj := &storage.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "listeners.zncdata.dev",
-			Namespace: r.cr.GetNamespace(),
+			Name: "listeners.zncdata.dev",
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by": "listener-operator",
 			},
@@ -49,10 +48,6 @@ func (r *StorageClass) build() *storage.StorageClass {
 }
 
 func (r *StorageClass) apply(ctx context.Context, obj *storage.StorageClass) (ctrl.Result, error) {
-	if err := ctrl.SetControllerReference(r.cr, obj, r.client.Scheme()); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	mutant, err := util.CreateOrUpdate(ctx, r.client, obj)
 	if err != nil {
 		return ctrl.Result{}, err

@@ -70,7 +70,7 @@ func (r *DaemonSet) Satisfied(ctx context.Context) (bool, error) {
 func (r *DaemonSet) getVolumes() []corev1.Volume {
 	return []corev1.Volume{
 		{
-			Name: VOLUMES_MOUNTPOINT_DIR_NAME,
+			Name: VolumesMountpointDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/kubelet/pods",
@@ -82,7 +82,7 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 			},
 		},
 		{
-			Name: VOLUMES_PLUGIN_DIR_NAME,
+			Name: VolumesPluginDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/kubelet/plugins" + listenersv1alpha1.GroupVersion.Group,
@@ -94,7 +94,7 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 			},
 		},
 		{
-			Name: VOLUMES_REGISTRATION_DIR_NAME,
+			Name: VolumesRegistrationDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/var/lib/kubelet/plugins_registry",
@@ -110,6 +110,14 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 
 func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 
+	labels := map[string]string{
+		"app.kubenetes.io/name":        "csi-plugin",
+		"app.kubernetes.io/instance":   r.cr.GetName(),
+		"app.kubernetes.io/part-of":    "listener-csi",
+		"app.kubernetes.io/managed-by": "listener-operator",
+		"app.kubernetes.io/created-by": "listener-operator",
+	}
+
 	obj := &appv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.getName(),
@@ -117,17 +125,19 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 		},
 		Spec: appv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": r.getName(),
-				},
+				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+
 				Spec: corev1.PodSpec{
 					ServiceAccountName: r.serviceAccount,
 					Volumes:            r.getVolumes(),
 					Containers: []corev1.Container{
 						*r.makeCSIDriverContainer(r.listener.CSIDriver),
-						*r.makeNodeDriverRegistrar(r.listener.NodeDriverRegister),
+						*r.makeNodeDriverRegistrar(r.listener.NodeDriverRegistrar),
 						*r.makeProvisioner(r.listener.CSIProvisioner),
 						*r.makeLivenessProbe(r.listener.LivenessProbe),
 					},
@@ -174,11 +184,11 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 			{
-				Name:      VOLUMES_MOUNTPOINT_DIR_NAME,
+				Name:      VolumesMountpointDirName,
 				MountPath: "/var/lib/kubelet/pods",
 			},
 		},
@@ -187,7 +197,7 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 	return obj
 }
 
-func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDriverRegisterSpec) *corev1.Container {
+func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDriverRegistrarSpec) *corev1.Container {
 	obj := &corev1.Container{
 		Name:            "node-driver-registrar",
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
@@ -209,11 +219,11 @@ func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDrive
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_REGISTRATION_DIR_NAME,
+				Name:      VolumesRegistrationDirName,
 				MountPath: "/registration",
 			},
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 		},
@@ -241,7 +251,7 @@ func (r *DaemonSet) makeProvisioner(sidecar *listenersv1alpha1.CSIProvisionerSpe
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 		},
@@ -273,7 +283,7 @@ func (r *DaemonSet) makeLivenessProbe(sidecar *listenersv1alpha1.LivenessProbeSp
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      VOLUMES_PLUGIN_DIR_NAME,
+				Name:      VolumesPluginDirName,
 				MountPath: "/csi",
 			},
 		},
