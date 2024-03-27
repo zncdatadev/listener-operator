@@ -5,7 +5,6 @@ metadata:
   labels:
     name: nginx-pod
 spec:
-  serviceAccountName: zds-operator
   containers:
   - name: nginx-pod
     image: nginx
@@ -33,7 +32,7 @@ spec:
             test.zncdata.dev/foo: bar
         spec:
           accessModes: ["ReadWriteOnce"]
-          storageClassName: listener
+          storageClassName: listeners.zncdata.dev
           resources:
             requests:
               storage: 1Mi
