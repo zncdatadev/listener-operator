@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -232,6 +233,9 @@ func (n *NodeServer) patchPodLabelWithListener(
 	return nil
 }
 
+// getAddresses gets the listener address and ports.
+// When get address from listener status, if listener status is not ready,
+// an error will raise. NodeController will retry to get address from listener status.
 func (n *NodeServer) getAddresses(
 	ctx context.Context,
 	listener *listenersv1alpha1.Listener,
@@ -422,6 +426,18 @@ func (n *NodeServer) createOrUpdateListener(
 		if err := n.client.Create(ctx, listener); err != nil {
 			return nil, err
 		}
+		log.V(5).Info("A new listener created, we retry to get listener", "listener", listener.Name, "namespace", listener.Namespace)
+		// wait for listener status ready, then retry to get listener
+		// to avoid get listener status error
+		time.Sleep(200 * time.Millisecond)
+		if err := n.client.Get(ctx, client.ObjectKey{
+			Name:      listener.Name,
+			Namespace: listener.Namespace,
+		}, listener); err != nil {
+			return nil, err
+		}
+		log.V(5).Info("Found this listener just created. But this listener status may not be ready.", "listener", listener.Name, "namespace", listener.Namespace)
+
 	} else if err == nil {
 		log.V(5).Info("Listener found, update listener", "listener", listener.Name, "namespace", listener.Namespace)
 		if err := n.client.Update(ctx, listener); err != nil {
