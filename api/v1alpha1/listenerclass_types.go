@@ -34,7 +34,7 @@ const (
 type ListenerClassSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=LoadBalancer;NodePort;ClusterIP
-	ServiceType ServiceType `json:"serviceType"`
+	ServiceType ServiceType `json:"serviceType,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
@@ -46,6 +46,7 @@ type ListenerClassStatus struct {
 }
 
 //+kubebuilder:object:root=true
+// +kubebuilder:resource:path=listenerclasses,scope=Cluster
 //+kubebuilder:subresource:status
 
 // ListenerClass is the Schema for the listenerclasses API

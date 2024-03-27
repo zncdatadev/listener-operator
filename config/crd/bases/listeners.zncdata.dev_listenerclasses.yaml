@@ -12,7 +12,7 @@ spec:
     listKind: ListenerClassList
     plural: listenerclasses
     singular: listenerclass
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:
@@ -45,8 +45,6 @@ spec:
                 - NodePort
                 - ClusterIP
                 type: string
-            required:
-            - serviceType
             type: object
           status:
             description: ListenerClassStatus defines the observed state of ListenerClass
