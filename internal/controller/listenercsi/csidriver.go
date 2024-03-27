@@ -34,7 +34,7 @@ func (r *CSIDriver) Reconcile(ctx context.Context) (ctrl.Result, error) {
 }
 
 func (r *CSIDriver) build() *storage.CSIDriver {
-	attachRequired := true
+	attachRequired := false
 	podInfoOnMount := true
 
 	obj := &storage.CSIDriver{
