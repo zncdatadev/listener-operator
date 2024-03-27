@@ -41,7 +41,7 @@ type ListenerCSIReconciler struct {
 //+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenercsis/finalizers,verbs=update
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch
