@@ -180,7 +180,7 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 		Args: []string{
 			"-endpoint=$(ADDRESS)",
 			"-nodeid=$(NODE_NAME)",
-			"-zap-log-level=5",
+			"-zap-log-level=" + csi.Logging.Level,
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -203,7 +203,7 @@ func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDrive
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
 		ImagePullPolicy: corev1.PullPolicy(sidecar.PullPolicy),
 		Args: []string{
-			"--v=5",
+			"--v=" + sidecar.Logging.Level,
 			"--csi-address=$(ADDRESS)",
 			"--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)",
 		},
@@ -238,7 +238,7 @@ func (r *DaemonSet) makeProvisioner(sidecar *listenersv1alpha1.CSIProvisionerSpe
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
 		ImagePullPolicy: corev1.PullPolicy(sidecar.PullPolicy),
 		Args: []string{
-			"--v=5",
+			"--v=" + sidecar.Logging.Level,
 			"--csi-address=$(ADDRESS)",
 			"--feature-gates=Topology=true",
 			"--extra-create-metadata",
@@ -266,6 +266,7 @@ func (r *DaemonSet) makeLivenessProbe(sidecar *listenersv1alpha1.LivenessProbeSp
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
 		ImagePullPolicy: corev1.PullPolicy(sidecar.PullPolicy),
 		Args: []string{
+			"-v=" + sidecar.Logging.Level,
 			"--csi-address=$(ADDRESS)",
 			"--health-port=9808",
 		},
