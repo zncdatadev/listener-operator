@@ -90,8 +90,8 @@ func (r *RBAC) buildClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
+				Resources: []string{"pods"},
+				Verbs:     []string{"get", "list", "watch", "patch"},
 			},
 			{
 				APIGroups: []string{""},
@@ -117,6 +117,16 @@ func (r *RBAC) buildClusterRole() *rbacv1.ClusterRole {
 				APIGroups: []string{"storage.k8s.io"},
 				Resources: []string{"storageclasses"},
 				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"listeners.zncdata.dev"},
+				Resources: []string{"listenerclasses"},
+				Verbs:     []string{"get", "list", "watch"},
+			},
+			{
+				APIGroups: []string{"listeners.zncdata.dev"},
+				Resources: []string{"listeners"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
 			},
 		},
 	}

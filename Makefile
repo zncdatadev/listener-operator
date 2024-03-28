@@ -1,3 +1,16 @@
+
+ORG_PATH=github.com/zncdata-labs
+PROJECT_NAME := listener-operator
+BUILD_COMMIT := $(shell git rev-parse --short HEAD)
+REPO_PATH=$(ORG_PATH)/$(PROJECT_NAME)
+
+# build variables
+BUILD_TIMESTAMP := $$(date +%Y-%m-%d-%H:%M)
+BUILD_TIME_VAR := $(REPO_PATH)/internal/csi/version.BuildTime
+GIT_COMMIT_VAR := $(REPO_PATH)/internal/csi/version.GitCommit
+BUILD_VERSION_VAR := $(REPO_PATH)/internal/csi/version.BuildVersion
+LDFLAGS ?= "-X $(BUILD_TIME_VAR)=$(BUILD_TIMESTAMP) -X $(GIT_COMMIT_VAR)=$(BUILD_COMMIT) -X $(BUILD_VERSION_VAR)=$(VERSION)"
+
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
@@ -132,7 +145,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build -t ${IMG} -f build/Dockerfile .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -144,14 +157,42 @@ docker-push: ## Push docker image with the manager.
 # - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 # - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:<tag>> then the export will fail)
 # To properly provided solutions that supports more than one platform you should use this option.
-PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+PLATFORMS ?= linux/arm64,linux/amd64
 .PHONY: docker-buildx
 docker-buildx: test ## Build and push docker image for the manager for cross-platform support
-	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
 	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
 	$(CONTAINER_TOOL) buildx use project-v3-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+	- $(CONTAINER_TOOL) buildx build -f build/Dockerfile --push --platform=$(PLATFORMS) --tag ${IMG} .
+	- $(CONTAINER_TOOL) buildx rm project-v3-builder
+	rm Dockerfile.cross
+
+##@ CSIDriver
+
+CSIDRIVER_IMG ?= ${REGISTRY}/listener-csi-driver:$(VERSION)
+
+.PHONY: csi-build
+csi-build: ## Build csi driver.
+	go build -a -ldflags $(LDFLAGS) -o bin/csi-driver cmd/csi_driver/main.go
+
+.PHONY: csi-run
+csi-run: ## Run csi driver.
+	go run ./cmd/csi-driver/main.go
+
+.PHONY: csi-docker-build
+csi-docker-build: ## Build docker image with the csi driver.
+	$(CONTAINER_TOOL) build -t ${CSIDRIVER_IMG} -f build/csi-driver.Dockerfile .
+
+
+.PHONY: csi-docker-push
+csi-docker-push: ## Push docker image with the csi driver.
+	$(CONTAINER_TOOL) push ${CSIDRIVER_IMG}
+
+
+.PHONY: csi-docker-buildx
+csi-docker-buildx: ## Build and push docker image for the csi driver for cross-platform support
+	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
+	$(CONTAINER_TOOL) buildx use project-v3-builder
+	- $(CONTAINER_TOOL) buildx build -f build/csi-driver.Dockerfile --push --platform=$(PLATFORMS) --tag ${CSIDRIVER_IMG} .
 	- $(CONTAINER_TOOL) buildx rm project-v3-builder
 	rm Dockerfile.cross
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -232,6 +233,9 @@ func (n *NodeServer) patchPodLabelWithListener(
 	return nil
 }
 
+// getAddresses gets the listener address and ports.
+// When get address from listener status, if listener status is not ready,
+// an error will raise. NodeController will retry to get address from listener status.
 func (n *NodeServer) getAddresses(
 	ctx context.Context,
 	listener *listenersv1alpha1.Listener,
@@ -243,13 +247,14 @@ func (n *NodeServer) getAddresses(
 		if err != nil {
 			return nil, err
 		}
-
+		log.V(5).Info("get address from listener status", "address", address, "listener", listener.Name, "namespace", listener.Namespace)
 		return &util.ListenerIngress{
 			AddressInfo: *address,
 			Ports:       listener.Status.NodePorts,
 		}, nil
 	} else if len(listener.Status.IngressAddress) != 0 {
 		for _, ingressAddress := range listener.Status.IngressAddress {
+			log.V(5).Info("get address from listener status", "address", ingressAddress, "listener", listener.Name, "namespace", listener.Namespace)
 			return &util.ListenerIngress{
 				AddressInfo: util.AddressInfo{
 					Address:     ingressAddress.Address,
@@ -259,8 +264,8 @@ func (n *NodeServer) getAddresses(
 			}, nil
 		}
 	}
-	log.V(5).Info("Listener status not found", "listener", listener.Name, "namespace", listener.Namespace)
-	return &util.ListenerIngress{}, status.Error(codes.Internal, "listener address not found")
+	log.V(5).Info("can not found address from listener status", "listener", listener.Name, "namespace", listener.Namespace)
+	return &util.ListenerIngress{}, status.Error(codes.Internal, "can not found address from listener status")
 }
 
 func (n *NodeServer) getNodeAddressByPod(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
@@ -421,6 +426,18 @@ func (n *NodeServer) createOrUpdateListener(
 		if err := n.client.Create(ctx, listener); err != nil {
 			return nil, err
 		}
+		log.V(5).Info("A new listener created, we retry to get listener", "listener", listener.Name, "namespace", listener.Namespace)
+		// wait for listener status ready, then retry to get listener
+		// to avoid get listener status error
+		time.Sleep(200 * time.Millisecond)
+		if err := n.client.Get(ctx, client.ObjectKey{
+			Name:      listener.Name,
+			Namespace: listener.Namespace,
+		}, listener); err != nil {
+			return nil, err
+		}
+		log.V(5).Info("Found this listener just created. But this listener status may not be ready.", "listener", listener.Name, "namespace", listener.Namespace)
+
 	} else if err == nil {
 		log.V(5).Info("Listener found, update listener", "listener", listener.Name, "namespace", listener.Namespace)
 		if err := n.client.Update(ctx, listener); err != nil {
