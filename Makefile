@@ -360,10 +360,11 @@ OLM_VERSION ?= v0.27.0
 .PHONY: kind-create
 kind-create: kind ## Create a kind cluster.
 	$(KIND) create cluster --config test/e2e/kind.yaml --name $(KIND_CLUSTER_NAME) --kubeconfig $(KIND_KUBECONFIG) --wait 120s
-	make kind-setup KUBECONFIG=$(KIND_KUBECONFIG)
+	# make kind-setup KUBECONFIG=$(KIND_KUBECONFIG)
 
 .PHONY: kind-setup
 kind-setup: kind ## setup kind cluster base environment
+	@echo "\nSetup kind cluster base environment, install ingress-nginx and OLM"
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 	kubectl -n ingress-nginx wait deployment ingress-nginx-controller --for=condition=available --timeout=300s
 	curl -sSL https://github.com/operator-framework/operator-lifecycle-manager/releases/download/$(OLM_VERSION)/install.sh | bash -s $(OLM_VERSION)
@@ -400,17 +401,16 @@ endif
 .PHONY: chainsaw-setup
 chainsaw-setup: manifests kustomize ## Run the chainsaw setup
 	@echo "\nSetup chainsaw test environment"
-	make install KUBECONFIG=$(KIND_KUBECONFIG)
 	make docker-build
-	$(KIND) load docker-image $(IMG)
+	make csi-docker-build
+	$(KIND) --name $(KIND_CLUSTER_NAME) load docker-image $(IMG) $(CSIDRIVER_IMG)
 	make deploy KUBECONFIG=$(KIND_KUBECONFIG)
 
 .PHONY: chainsaw-test
 chainsaw-test: chainsaw ## Run the chainsaw test
-	$(CHAINSAW) test --test-dir ./test/e2e --assert-timeout 120s --cleanup-timeout 120s --delete-timeout 120s
+	$(CHAINSAW) test --cluster cluster-1=$(KIND_KUBECONFIG) --test-dir ./test/e2e --assert-timeout 120s --cleanup-timeout 120s --delete-timeout 120s
 
 
 .PHONY: chainsaw-cleanup
 chainsaw-cleanup: manifests kustomize ## Run the chainsaw cleanup
-	make uninstall KUBECONFIG=$(KIND_KUBECONFIG)
 	make undeploy KUBECONFIG=$(KIND_KUBECONFIG)
