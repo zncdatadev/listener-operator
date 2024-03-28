@@ -61,7 +61,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - secrets
+  - pods
   verbs:
   - create
   - get
@@ -75,6 +75,18 @@ rules:
   - serviceaccounts
   verbs:
   - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch

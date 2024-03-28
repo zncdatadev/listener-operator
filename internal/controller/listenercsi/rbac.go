@@ -90,8 +90,8 @@ func (r *RBAC) buildClusterRole() *rbacv1.ClusterRole {
 			},
 			{
 				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
+				Resources: []string{"pods"},
+				Verbs:     []string{"get", "list", "watch", "patch"},
 			},
 			{
 				APIGroups: []string{""},
