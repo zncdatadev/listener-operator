@@ -318,18 +318,29 @@ ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
 
-# Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
-# This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
-# https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+catalog-build: opm ## Build a catalog manifests.
+	mkdir -p catalog
+	@if test -x ./catalog.Dockerfile; then \
+		opm generate dockerfile catalog; \
+	fi
+	opm alpha render-template semver semver.yaml -o yaml > catalog/catalog.yaml
+
+.PHONY: catalog-docker-build
+catalog-docker-build: ## Build a catalog image.
+	$(CONTAINER_TOOL) build -t ${CATALOG_IMG} -f catalog.Dockerfile .
 
 # Push the catalog image.
-.PHONY: catalog-push
-catalog-push: ## Push a catalog image.
+.PHONY: catalog-docker-push
+catalog-docker-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
+.PHONY: catalog-docker-buildx
+catalog-docker-buildx: ## Build and push a catalog image for cross-platform support
+	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
+	$(CONTAINER_TOOL) buildx use project-v3-builder
+	- $(CONTAINER_TOOL) buildx build -f catalog.Dockerfile --push --tag ${CATALOG_IMG} .
+	- $(CONTAINER_TOOL) buildx rm project-v3-builder
 
 ##@ E2E
 
