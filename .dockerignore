@@ -7,4 +7,3 @@ bundle.Dockerfile
 kind-kubeconfig
 
 catalog.Dockerfile
-catalog
