@@ -30,3 +30,6 @@ Dockerfile.cross
 bundle*
 
 kind-kubeconfig
+
+catalog.Dockerfile
+catalog
