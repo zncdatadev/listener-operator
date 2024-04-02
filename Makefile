@@ -68,7 +68,7 @@ OPERATOR_SDK_VERSION ?= v1.33.0
 # Image URL to use all building/pushing image targets
 IMG ?= $(IMAGE_TAG_BASE):v$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.26.0
+ENVTEST_K8S_VERSION ?= 1.26.14
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -348,7 +348,7 @@ catalog-docker-buildx: ## Build and push a catalog image for cross-platform supp
 KIND_VERSION ?= v0.22.0
 
 KIND_KUBECONFIG ?= ./kind-kubeconfig
-KIND_CLUSTER_NAME ?= listener-operator
+KIND_CLUSTER_NAME ?= ${PROJECT_NAME}
 
 .PHONY: kind
 KIND = $(LOCALBIN)/kind
@@ -370,7 +370,7 @@ OLM_VERSION ?= v0.27.0
 # Create a kind cluster, install ingress-nginx, and wait for it to be available.
 .PHONY: kind-create
 kind-create: kind ## Create a kind cluster.
-	$(KIND) create cluster --config test/e2e/kind.yaml --name $(KIND_CLUSTER_NAME) --kubeconfig $(KIND_KUBECONFIG) --wait 120s
+	$(KIND) create cluster --config test/e2e/kind-$(ENVTEST_K8S_VERSION).yaml --name $(KIND_CLUSTER_NAME) --kubeconfig $(KIND_KUBECONFIG) --wait 120s
 	# make kind-setup KUBECONFIG=$(KIND_KUBECONFIG)
 
 .PHONY: kind-setup
