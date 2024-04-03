@@ -34,7 +34,10 @@ spec:
       mountPath: /opt/zncdata/
     readinessProbe:
       exec:
-        command: ["sh", "-c", "ls /opt/zncdata/default-address/address | grep -q ."]
+        command:
+        - "sh"
+        - "-c"
+        - "cat /opt/zncdata/default-address/ports/http | grep -q '80'"
       initialDelaySeconds: 1
       periodSeconds: 5
   restartPolicy: Never
