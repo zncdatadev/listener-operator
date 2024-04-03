@@ -179,7 +179,7 @@ func (n *NodeServer) writeData(targetPath string, data []*util.ListenerIngress) 
 
 	// mkdir addresses path
 	addressesPath := filepath.Join(targetPath, "addresses")
-	if err := os.MkdirAll(addressesPath, 0750); err != nil {
+	if err := os.MkdirAll(addressesPath, 0755); err != nil {
 		log.Error(err, "Mkdir addresses path error", "path", addressesPath)
 		return err
 	}
@@ -190,7 +190,7 @@ func (n *NodeServer) writeData(targetPath string, data []*util.ListenerIngress) 
 	for _, listenerData := range data {
 		// mkdir address path
 		listenerAddressPath := filepath.Join(addressesPath, listenerData.Address)
-		if err := os.MkdirAll(listenerAddressPath, 0750); err != nil {
+		if err := os.MkdirAll(listenerAddressPath, 0755); err != nil {
 			log.Error(err, "Mkdir listener address path error", "path", listenerAddressPath)
 			return err
 		}
