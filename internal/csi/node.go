@@ -219,7 +219,7 @@ func (n *NodeServer) writeAddress(targetPath string, data *util.ListenerIngress)
 	}
 
 	listenerAddressPortPath := filepath.Join(targetPath, "ports")
-	if err := os.MkdirAll(listenerAddressPortPath, 0750); err != nil {
+	if err := os.MkdirAll(listenerAddressPortPath, 0755); err != nil {
 		log.Error(err, "Mkdir listener address port path error", "path", listenerAddressPortPath)
 		return err
 	}
