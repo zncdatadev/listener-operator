@@ -85,7 +85,7 @@ func (r *DaemonSet) getVolumes() []corev1.Volume {
 			Name: VolumesPluginDirName,
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
-					Path: "/var/lib/kubelet/plugins" + listenersv1alpha1.GroupVersion.Group,
+					Path: "/var/lib/kubelet/plugins/" + listenersv1alpha1.GroupVersion.Group,
 					Type: func() *corev1.HostPathType {
 						t := corev1.HostPathDirectoryOrCreate
 						return &t
@@ -218,7 +218,7 @@ func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDrive
 			},
 			{
 				Name:  "DRIVER_REG_SOCK_PATH",
-				Value: "/var/lib/kubelet/plugins" + listenersv1alpha1.GroupVersion.Group + "/csi.sock",
+				Value: "/var/lib/kubelet/plugins/" + listenersv1alpha1.GroupVersion.Group + "/csi.sock",
 			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
