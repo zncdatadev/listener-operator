@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -167,49 +168,85 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 }
 
 // writeData writes the data to the target path.
-func (n *NodeServer) writeData(targetPath string, data *util.ListenerIngress) error {
+func (n *NodeServer) writeData(targetPath string, data []*util.ListenerIngress) error {
 
 	if data == nil {
 		log.V(1).Info("Listener data is nil, skip write data")
 		return nil
 	}
 
-	log.V(5).Info("Write data to target path", "targetPath", targetPath, "data", data)
+	log.V(5).Info("Writing data to target path", "targetPath", targetPath, "data", data)
 
 	// mkdir addresses path
 	addressesPath := filepath.Join(targetPath, "addresses")
 	if err := os.MkdirAll(addressesPath, 0750); err != nil {
+		log.Error(err, "Mkdir addresses path error", "path", addressesPath)
+		return err
+	}
+	log.V(5).Info("Mkdir addresses path", "path", addressesPath)
+
+	var defaultAddressPath string
+
+	for _, listenerData := range data {
+		// mkdir address path
+		listenerAddressPath := filepath.Join(addressesPath, listenerData.Address)
+		if err := os.MkdirAll(listenerAddressPath, 0750); err != nil {
+			log.Error(err, "Mkdir listener address path error", "path", listenerAddressPath)
+			return err
+		}
+		log.V(5).Info("Mkdir listener address path", "address", listenerData.Address, "path", listenerAddressPath)
+		// write address and ports
+		if err := n.writeAddress(listenerAddressPath, listenerData); err != nil {
+			log.Error(err, "Write address to listener address path error", "path", listenerAddressPath)
+			return err
+		}
+		log.V(5).Info("Write address to listener address path", "address", listenerData.Address, "path", listenerAddressPath)
+		defaultAddressPath = listenerAddressPath
+	}
+
+	if err := n.symlinkToDefaultAddress(defaultAddressPath, targetPath); err != nil {
 		return err
 	}
 
-	// mkdir address path
-	listenerAddressPath := filepath.Join(addressesPath, data.Address)
-	if err := os.MkdirAll(listenerAddressPath, 0750); err != nil {
+	return nil
+
+}
+
+func (n *NodeServer) writeAddress(targetPath string, data *util.ListenerIngress) error {
+	if err := os.WriteFile(filepath.Join(targetPath, "address"), []byte(data.Address), fs.FileMode(0644)); err != nil {
+		log.Error(err, "Write address to target path error", "path", targetPath)
 		return err
 	}
 
-	// write address
-	if err := os.WriteFile(filepath.Join(listenerAddressPath, "address"), []byte(data.Address), fs.FileMode(0644)); err != nil {
-		return err
-	}
-
-	// make ports path in address
-	listenerAddressPortPath := filepath.Join(listenerAddressPath, "ports")
+	listenerAddressPortPath := filepath.Join(targetPath, "ports")
 	if err := os.MkdirAll(listenerAddressPortPath, 0750); err != nil {
+		log.Error(err, "Mkdir listener address port path error", "path", listenerAddressPortPath)
 		return err
 	}
 
-	// write ports
 	for _, port := range data.Ports {
 		if port.Name != "" {
 			portStr := strconv.Itoa(int(port.Port))
 			if err := os.WriteFile(filepath.Join(listenerAddressPortPath, port.Name), []byte(portStr), fs.FileMode(0644)); err != nil {
 				return err
 			}
-		} else {
-			log.V(1).Info("port name is empty, we could not write to empty file name, so ignore it", "port", port, "address", data.Address)
+			log.V(5).Info("Write port to target path", "port", port, "address", data.Address)
+			return nil
 		}
+		log.V(1).Info("port name is empty, we could not write to empty file name, so ignore it", "port", port, "address", data.Address)
 	}
+	return nil
+}
+
+func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath string) error {
+	sourcePath := strings.TrimPrefix(defaultAddressPath, targetPath)
+	sourcePath = strings.TrimPrefix(sourcePath, "/")
+	destPath := filepath.Join(targetPath, "default-address")
+	if err := os.Symlink(sourcePath, destPath); err != nil {
+		log.Error(err, "Symlink to default address error", "sourcePath", sourcePath, "destPath", destPath)
+		return err
+	}
+	log.V(5).Info("Symlink to default address", "sourcePath", sourcePath, "destPath", destPath)
 	return nil
 }
 
@@ -240,7 +277,7 @@ func (n *NodeServer) getAddresses(
 	ctx context.Context,
 	listener *listenersv1alpha1.Listener,
 	pod *corev1.Pod,
-) (*util.ListenerIngress, error) {
+) ([]*util.ListenerIngress, error) {
 
 	if len(listener.Status.NodePorts) != 0 {
 		address, err := n.getNodeAddressByPod(ctx, pod)
@@ -248,24 +285,29 @@ func (n *NodeServer) getAddresses(
 			return nil, err
 		}
 		log.V(5).Info("get address from listener status", "address", address, "listener", listener.Name, "namespace", listener.Namespace)
-		return &util.ListenerIngress{
-			AddressInfo: *address,
-			Ports:       listener.Status.NodePorts,
+		return []*util.ListenerIngress{
+			{
+				AddressInfo: *address,
+				Ports:       listener.Status.NodePorts,
+			},
 		}, nil
+
 	} else if len(listener.Status.IngressAddress) != 0 {
+		var addresses []*util.ListenerIngress
 		for _, ingressAddress := range listener.Status.IngressAddress {
 			log.V(5).Info("get address from listener status", "address", ingressAddress, "listener", listener.Name, "namespace", listener.Namespace)
-			return &util.ListenerIngress{
+			addresses = append(addresses, &util.ListenerIngress{
 				AddressInfo: util.AddressInfo{
 					Address:     ingressAddress.Address,
 					AddressType: ingressAddress.AddressType,
 				},
 				Ports: *ingressAddress.Ports,
-			}, nil
+			})
 		}
+		return addresses, nil
 	}
 	log.V(5).Info("can not found address from listener status", "listener", listener.Name, "namespace", listener.Namespace)
-	return &util.ListenerIngress{}, status.Error(codes.Internal, "can not found address from listener status")
+	return nil, status.Error(codes.Internal, "can not found address from listener status")
 }
 
 func (n *NodeServer) getNodeAddressByPod(ctx context.Context, pod *corev1.Pod) (*util.AddressInfo, error) {
