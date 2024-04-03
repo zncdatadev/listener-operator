@@ -168,7 +168,7 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 
 ##@ CSIDriver
 
-CSIDRIVER_IMG ?= ${REGISTRY}/listener-csi-driver:$(VERSION)
+CSIDRIVER_IMG ?= ${REGISTRY}/listener-csi-driver:v$(VERSION)
 
 .PHONY: csi-build
 csi-build: ## Build csi driver.
