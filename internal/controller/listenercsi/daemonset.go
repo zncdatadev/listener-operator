@@ -155,6 +155,15 @@ func (r *DaemonSet) makeDaemonset() (*appv1.DaemonSet, error) {
 func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec) *corev1.Container {
 	privileged := true
 	runAsUser := int64(0)
+	args := []string{
+		"-endpoint=$(ADDRESS)",
+		"-nodeid=$(NODE_NAME)",
+	}
+
+	if csi.Logging != nil {
+		args = append(args, "-zap-log-level="+csi.Logging.Level)
+	}
+
 	obj := &corev1.Container{
 		Name:            "csi-driver",
 		Image:           csi.Repository + ":" + csi.Tag,
@@ -177,11 +186,7 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 				Value: "unix:///csi/csi.sock",
 			},
 		},
-		Args: []string{
-			"-endpoint=$(ADDRESS)",
-			"-nodeid=$(NODE_NAME)",
-			"-zap-log-level=" + csi.Logging.Level,
-		},
+		Args: args,
 		VolumeMounts: []corev1.VolumeMount{
 			{
 				Name:      VolumesPluginDirName,
@@ -202,15 +207,20 @@ func (r *DaemonSet) makeCSIDriverContainer(csi *listenersv1alpha1.CSIDriverSpec)
 }
 
 func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDriverRegistrarSpec) *corev1.Container {
+	args := []string{
+		"--csi-address=$(ADDRESS)",
+		"--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)",
+	}
+
+	if sidecar.Logging != nil {
+		args = append(args, "-v="+sidecar.Logging.Level)
+	}
+
 	obj := &corev1.Container{
 		Name:            "node-driver-registrar",
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
 		ImagePullPolicy: corev1.PullPolicy(sidecar.PullPolicy),
-		Args: []string{
-			"--v=" + sidecar.Logging.Level,
-			"--csi-address=$(ADDRESS)",
-			"--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)",
-		},
+		Args:            args,
 		Env: []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
@@ -237,16 +247,20 @@ func (r *DaemonSet) makeNodeDriverRegistrar(sidecar *listenersv1alpha1.NodeDrive
 }
 
 func (r *DaemonSet) makeProvisioner(sidecar *listenersv1alpha1.CSIProvisionerSpec) *corev1.Container {
+	args := []string{
+		"--csi-address=$(ADDRESS)",
+		"--feature-gates=Topology=true",
+		"--extra-create-metadata",
+	}
+
+	if sidecar.Logging != nil {
+		args = append(args, "-v="+sidecar.Logging.Level)
+	}
 	obj := &corev1.Container{
 		Name:            "csi-provisioner",
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
 		ImagePullPolicy: corev1.PullPolicy(sidecar.PullPolicy),
-		Args: []string{
-			"--v=" + sidecar.Logging.Level,
-			"--csi-address=$(ADDRESS)",
-			"--feature-gates=Topology=true",
-			"--extra-create-metadata",
-		},
+		Args:            args,
 		Env: []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
@@ -265,15 +279,19 @@ func (r *DaemonSet) makeProvisioner(sidecar *listenersv1alpha1.CSIProvisionerSpe
 }
 
 func (r *DaemonSet) makeLivenessProbe(sidecar *listenersv1alpha1.LivenessProbeSpec) *corev1.Container {
+	args := []string{
+		"--csi-address=$(ADDRESS)",
+		"--health-port=9808",
+	}
+
+	if sidecar.Logging != nil {
+		args = append(args, "-v="+sidecar.Logging.Level)
+	}
 	obj := &corev1.Container{
 		Name:            "liveness-probe",
 		Image:           sidecar.Repository + ":" + sidecar.Tag,
 		ImagePullPolicy: corev1.PullPolicy(sidecar.PullPolicy),
-		Args: []string{
-			"-v=" + sidecar.Logging.Level,
-			"--csi-address=$(ADDRESS)",
-			"--health-port=9808",
-		},
+		Args:            args,
 		Env: []corev1.EnvVar{
 			{
 				Name:  "ADDRESS",
