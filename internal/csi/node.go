@@ -232,9 +232,9 @@ func (n *NodeServer) writeAddress(targetPath string, data *util.ListenerIngress)
 				return err
 			}
 			log.V(5).Info("Write port to target path", "port", port, "address", data.Address)
-			return nil
+		} else {
+			log.Info("port name is empty, we could not write to empty file name, so ignore it", "port", port, "address", data.Address)
 		}
-		log.V(1).Info("port name is empty, we could not write to empty file name, so ignore it", "port", port, "address", data.Address)
 	}
 	return nil
 }
