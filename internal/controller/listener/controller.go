@@ -19,6 +19,7 @@ package listener
 import (
 	"context"
 	"errors"
+	"maps"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -159,7 +160,7 @@ func (r *ListenerReconciler) getServiceMatchLabeles(listener *listenersv1alpha1.
 		}
 	}
 
-	labels[util.LISTENERS_ZNCDATA_LISTENER_CLASS] = listener.GetName()
+	maps.Copy(labels, util.ListenerLabelsForPod(listener.Spec.ClassName, listener.Name))
 
 	return labels, nil
 }
