@@ -3,6 +3,7 @@ package csi
 import (
 	"context"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -58,10 +59,10 @@ func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
 	if val, ok := parameters[STORAGE_KUBERNETES_CSI_PROVISIONER_IDENTITY]; ok {
 		v.Provisioner = &val
 	}
-	if val, ok := parameters[util.LISTENERS_ZNCDATA_LISTENER_CLASS]; ok {
+	if val, ok := parameters[util.ListenersZncdataListenerClass]; ok {
 		v.ListenerClassName = &val
 	}
-	if val, ok := parameters[util.LISTENERS_ZNCDATA_LISTENER_NAME]; ok {
+	if val, ok := parameters[util.ListenersZncdataListenerName]; ok {
 		v.ListenerName = &val
 	}
 
@@ -145,7 +146,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	}
 
 	// update pod label with listener name
-	if err := n.patchPodLabelWithListener(ctx, pod, listener.GetName()); err != nil {
+	if err := n.patchPodLabelWithListener(ctx, pod, listener); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -253,7 +254,7 @@ func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath stri
 func (n *NodeServer) patchPodLabelWithListener(
 	ctx context.Context,
 	pod *corev1.Pod,
-	listenerName string,
+	listener *listenersv1alpha1.Listener,
 ) error {
 	// patch pod label with listener name
 	copyedPod := pod.DeepCopy()
@@ -261,7 +262,8 @@ func (n *NodeServer) patchPodLabelWithListener(
 		copyedPod.Labels = map[string]string{}
 	}
 
-	copyedPod.Labels[util.LISTENERS_ZNCDATA_LISTENER_NAME] = listenerName
+	maps.Copy(copyedPod.Labels, util.ListenerLabelsForPod(listener.Spec.ClassName, listener.Name))
+
 	if err := n.client.Patch(ctx, copyedPod, client.MergeFrom(pod)); err != nil {
 		log.Error(err, "Patch pod label error", "pod", pod.Name, "namespace", pod.Namespace)
 		return err
