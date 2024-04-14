@@ -29,7 +29,7 @@ Dockerfile.cross
 
 bundle*
 
-kind-kubeconfig
+kind-kubeconfig*
 
 catalog.Dockerfile
 catalog

@@ -4,6 +4,6 @@ bin/
 
 bundle.Dockerfile
 
-kind-kubeconfig
+kind-kubeconfig*
 
 catalog.Dockerfile
