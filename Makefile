@@ -182,8 +182,7 @@ csi-run: ## Run csi driver.
 
 .PHONY: csi-docker-build
 csi-docker-build: ## Build docker image with the csi driver.
-	$(CONTAINER_TOOL) build -t ${CSIDRIVER_IMG} -f build/csi-driver.Dockerfile .
-
+	$(CONTAINER_TOOL) build --build-arg LDFLAGS=$(LDFLAGS) --tag ${CSIDRIVER_IMG} -f build/csi-driver.Dockerfile .
 
 .PHONY: csi-docker-push
 csi-docker-push: ## Push docker image with the csi driver.
@@ -194,9 +193,8 @@ csi-docker-push: ## Push docker image with the csi driver.
 csi-docker-buildx: ## Build and push docker image for the csi driver for cross-platform support
 	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
 	$(CONTAINER_TOOL) buildx use project-v3-builder
-	- $(CONTAINER_TOOL) buildx build -f build/csi-driver.Dockerfile --push --platform=$(PLATFORMS) --tag ${CSIDRIVER_IMG} .
+	$(CONTAINER_TOOL) buildx build --push --build-arg LDFLAGS=$(LDFLAGS) --platform=$(PLATFORMS) --tag ${CSIDRIVER_IMG} -f build/csi-driver.Dockerfile .
 	- $(CONTAINER_TOOL) buildx rm project-v3-builder
-	rm Dockerfile.cross
 
 ##@ Deployment
 
