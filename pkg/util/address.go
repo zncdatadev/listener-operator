@@ -3,7 +3,7 @@ package util
 import (
 	"errors"
 
-	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 

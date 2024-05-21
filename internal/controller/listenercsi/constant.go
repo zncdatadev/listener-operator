@@ -3,9 +3,9 @@ package listenercsi
 import "path/filepath"
 
 const (
-	CSIServiceAccountName     = "listeners-csi-zncdata-labs"
-	CSIClusterRoleName        = "listeners-csi-zncdata-labs"
-	CSIClusterRoleBindingName = "listeners-csi-zncdata-labs"
+	CSIServiceAccountName     = "listeners-csi-zncdatadev"
+	CSIClusterRoleName        = "listeners-csi-zncdatadev"
+	CSIClusterRoleBindingName = "listeners-csi-zncdatadev"
 
 	VolumesMountpointDirName   = "mountpoint-dir"
 	VolumesPluginDirName       = "plugin-dir"

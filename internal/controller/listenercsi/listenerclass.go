@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
-	util "github.com/zncdata-labs/listener-operator/pkg/util"
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	util "github.com/zncdatadev/listener-operator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

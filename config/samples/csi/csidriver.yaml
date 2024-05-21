@@ -3,7 +3,7 @@ kind: CSIDriver
 metadata:
   name: listeners.zncdata.dev
   labels:
-    zncdata.dev/vendor: zncdata-labs
+    zncdata.dev/vendor: zncdatadev
     zncdata.dev/kind: csidriver
 spec:
   podInfoOnMount: true

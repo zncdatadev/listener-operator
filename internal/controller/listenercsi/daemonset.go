@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
-	util "github.com/zncdata-labs/listener-operator/pkg/util"
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	util "github.com/zncdatadev/listener-operator/pkg/util"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

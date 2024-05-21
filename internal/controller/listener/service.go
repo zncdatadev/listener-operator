@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
-	"github.com/zncdata-labs/listener-operator/pkg/util"
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	"github.com/zncdatadev/listener-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"

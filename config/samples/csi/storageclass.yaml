@@ -3,7 +3,7 @@ kind: StorageClass
 metadata:
   name: listener
   labels:
-    zncdata.dev/vendor: zncdata-labs
+    zncdata.dev/vendor: zncdatadev
     zncdata.dev/kind: storageclass
 provisioner: listeners.zncdata.dev
 parameters:
