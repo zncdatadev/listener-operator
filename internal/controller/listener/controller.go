@@ -1,5 +1,5 @@
 /*
-Copyright 2024 zncdata-labs.
+Copyright 2024 zncdatadev.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
-	util "github.com/zncdata-labs/listener-operator/pkg/util"
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	util "github.com/zncdatadev/listener-operator/pkg/util"
 )
 
 var (

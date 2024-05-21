@@ -1,5 +1,5 @@
 /*
-Copyright 2024 zncdata-labs.
+Copyright 2024 zncdatadev.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zncdata-labs/listener-operator/internal/csi"
-	"github.com/zncdata-labs/listener-operator/internal/csi/version"
+	"github.com/zncdatadev/listener-operator/internal/csi"
+	"github.com/zncdatadev/listener-operator/internal/csi/version"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -36,7 +36,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	listenersv1alpha1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

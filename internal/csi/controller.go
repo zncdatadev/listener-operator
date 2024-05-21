@@ -11,8 +11,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	listenersv1alph1 "github.com/zncdata-labs/listener-operator/api/v1alpha1"
-	util "github.com/zncdata-labs/listener-operator/pkg/util"
+	listenersv1alph1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	util "github.com/zncdatadev/listener-operator/pkg/util"
 )
 
 var (
