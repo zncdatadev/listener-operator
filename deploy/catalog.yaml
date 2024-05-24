@@ -5,7 +5,7 @@ metadata:
   namespace: kubedatastack-operators
 spec:
   sourceType: grpc
-  image: registry.cn-shanghai.aliyuncs.com/huagang/listener-operator-catalog:latest
+  image: quay.io/zncdatadev/listener-operator-catalog:latest
   displayName: kds catalog
   publisher: zncdatadev
   updateStrategy:
