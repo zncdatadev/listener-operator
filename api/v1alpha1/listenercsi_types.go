@@ -23,7 +23,7 @@ import (
 const (
 
 	// default values
-	CSIDriverImageRepository = "quay.io/zncdata/listener-csi-driver"
+	CSIDriverImageRepository = "quay.io/zncdatadev/listener-csi-driver"
 	CSIDriverImageTag        = "v0.0.1"
 	CSIDriverImagePullpolicy = "IfNotPresent"
 
@@ -50,7 +50,7 @@ type ListenerCSISpec struct {
 
 type CSIDriverSpec struct {
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:="quay.io/zncdata/listener-csi-driver"
+	// +kubebuilder:default:="quay.io/zncdatadev/listener-csi-driver"
 	Repository string `json:"repository,omitempty"`
 
 	// +kubebuilder:validation:Optional

@@ -10,7 +10,7 @@ metadata:
   name: listenercsi-sample
 spec:
   csiDriver:
-    repository: quay.io/zncdata/listener-csi-driver
+    repository: quay.io/zncdatadev/listener-csi-driver
     tag: v0.0.1
     pullPolicy: IfNotPresent
     logging:
