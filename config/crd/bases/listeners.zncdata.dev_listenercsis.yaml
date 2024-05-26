@@ -55,7 +55,7 @@ spec:
                     - Never
                     type: string
                   repository:
-                    default: quay.io/zncdata/listener-csi-driver
+                    default: quay.io/zncdatadev/listener-csi-driver
                     type: string
                   tag:
                     default: v0.0.1
