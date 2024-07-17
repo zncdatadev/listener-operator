@@ -1,12 +1,14 @@
+
+---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod-cluster-internal
+  name: pod-external-unstable
   labels:
-    name: pod-cluster-internal
+    name: pod-external-unstable
 spec:
   containers:
-  - name: pod-cluster-internal
+  - name: pod-external-unstable
     image: busybox:stable
     securityContext:
       runAsUser: 9999
@@ -37,7 +39,7 @@ spec:
         command:
         - "sh"
         - "-c"
-        - "cat /opt/zncdata/default-address/ports/http | grep -q '80'"
+        - "cat /opt/zncdata/default-address/address | grep -q ."
       initialDelaySeconds: 1
       periodSeconds: 5
   restartPolicy: Never
@@ -47,10 +49,11 @@ spec:
       volumeClaimTemplate:
         metadata:
           annotations:
-            listeners.zncdata.dev/listener-class: cluster-internal
+            listeners.zncdata.dev/listener-class: external-unstable
         spec:
           accessModes: ["ReadWriteOnce"]
           storageClassName: listeners.zncdata.dev
           resources:
             requests:
               storage: 1Mi
+
