@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: access
+  labels:
+    name: access
+spec:
+  serviceAccountName: test
+  containers:
+  - name: access
+    image: busybox:1.35
+    env:
+    - name: URL
+      valueFrom:
+        configMapKeyRef:
+          name: pod-external-unstable
+          key: url
+    command:
+    - sh
+    - -c
+    - |
+      echo "accessing listener at $URL"
+      # wget -O - $URL | grep -q "Caddy works" && echo "success" || echo "failure" && exit 1
+      if wget -qO - $URL | grep -q "Caddy works"; then
+        echo "success"
+        tail -f /dev/null
+      else
+        echo "failure"
+        exit 1
+      fi
+    resources:
+      limits:
+        cpu: 100m
+        memory: 10Mi

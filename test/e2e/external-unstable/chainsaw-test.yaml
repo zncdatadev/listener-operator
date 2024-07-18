@@ -1,0 +1,39 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: external-unstable
+spec:
+  steps:
+  - try:
+    - apply:
+        file: ../commons/sa.yaml # no not modify anything in this file
+    - apply:
+        resource:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: RoleBinding
+          metadata:
+            name: listener-test-role-binding
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: listener-test-role
+          subjects:
+          - kind: ServiceAccount
+            name: test
+            namespace: ($namespace) # doymaically replace the namespace when the test is run
+    - apply:
+        file: ../commons/listenercsi.yaml
+    - assert:
+        file: ../commons/listenercsi-assert.yaml
+    - apply:
+        file: pod.yaml
+    - sleep:
+        duration: 2s
+    - assert:
+        file: pod-assert.yaml
+    - apply:
+        file: access.yaml
+    - sleep:
+        duration: 2s
+    - assert:
+        file: access-assert.yaml
