@@ -1,7 +1,7 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: cluster-internal
+  name: external-stable
 spec:
   steps:
   - try:
@@ -20,7 +20,7 @@ spec:
           subjects:
           - kind: ServiceAccount
             name: test
-            namespace: ($namespace) # dynamic replace the namespace when the test is run
+            namespace: ($namespace) # doymaically replace the namespace when the test is run
     - apply:
         file: ../commons/listenercsi.yaml
     - assert:
@@ -28,12 +28,12 @@ spec:
     - apply:
         file: pod.yaml
     - sleep:
-        duration: 8s
+        duration: 2s
     - assert:
         file: ../commons/pod-assert.yaml
     - apply:
         file: ../access/access.yaml
     - sleep:
-        duration: 5s
+        duration: 2s
     - assert:
         file: ../access/access-assert.yaml

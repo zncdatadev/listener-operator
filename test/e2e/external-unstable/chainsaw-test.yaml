@@ -30,10 +30,10 @@ spec:
     - sleep:
         duration: 2s
     - assert:
-        file: pod-assert.yaml
+        file: ../commons/pod-assert.yaml
     - apply:
-        file: access.yaml
+        file: ../access/access.yaml
     - sleep:
         duration: 2s
     - assert:
-        file: access-assert.yaml
+        file: ../access/access-assert.yaml

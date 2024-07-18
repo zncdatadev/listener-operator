@@ -1,7 +1,0 @@
-
-apiVersion: v1
-kind: Pod
-metadata:
-  name: pod-cluster-internal
-status:
-  phase: Running

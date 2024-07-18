@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod-cluster-internal
+  name: pod
   labels:
-    name: pod-cluster-internal
+    name: pod
 spec:
   serviceAccountName: test
   initContainers:
@@ -37,7 +37,7 @@ spec:
       apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: $POD_NAME
+        name: config-discovery
         ownerReferences:
         - apiVersion: v1
           blockOwnerDeletion: true
@@ -51,7 +51,7 @@ spec:
     - name: listener
       mountPath: /opt/zncdata/
   containers:
-  - name: pod-cluster-internal
+  - name: main
     image: caddy:2
     command:
     - sh
