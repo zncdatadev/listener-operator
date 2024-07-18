@@ -54,7 +54,7 @@ func (p *PersetListenerClass) apply(ctx context.Context) (ctrl.Result, error) {
 		p.client,
 		p.cr,
 		"external-stable",
-		listenersv1alpha1.ServiceTypeLoadBalancer,
+		listenersv1alpha1.ServiceTypeNodePort,
 	).Reconcile(ctx); err != nil {
 		return ctrl.Result{}, err
 	} else if result.RequeueAfter > 0 {
