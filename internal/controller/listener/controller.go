@@ -46,6 +46,7 @@ type ListenerReconciler struct {
 //+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch
 //+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=endpoints,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -77,6 +78,7 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		logger.Error(err, "Failed to get service type")
 		return ctrl.Result{}, err
 	}
+	logger.Info("Service type", "type", serviceType, "listener", instance.Name, "namespace", instance.Namespace)
 
 	labels, err := r.getServiceMatchLabeles(instance)
 	if err != nil {
@@ -235,6 +237,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 		return nil, errors.New("unknown service type: " + string(serviceType))
 
 	}
+	logger.Info("Listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
 	return status, nil
 }
 

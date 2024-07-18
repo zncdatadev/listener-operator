@@ -12,3 +12,4 @@ spec:
     exec: 45s
   skipDelete: false
   failFast: true
+  parallel: 1

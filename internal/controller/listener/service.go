@@ -183,6 +183,8 @@ func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.Address
 
 	addresses := []util.AddressInfo{}
 
+	logger.V(5).Info("get nodes address", "nodes", nodeNames)
+
 	for _, nodeName := range nodeNames {
 		node := &corev1.Node{}
 		if err := s.client.Get(ctx, client.ObjectKey{Namespace: "", Name: nodeName}, node); err != nil {
