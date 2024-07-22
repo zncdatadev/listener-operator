@@ -97,7 +97,7 @@ spec:
       volumeClaimTemplate:
         metadata:
           annotations:
-            listeners.zncdata.dev/listener-class: external-unstable
+            listeners.zncdata.dev/listener-class: external-stable
         spec:
           accessModes: ["ReadWriteOnce"]
           storageClassName: listeners.zncdata.dev
