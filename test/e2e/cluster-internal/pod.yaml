@@ -1,9 +1,22 @@
+# Description: Example Test listeners of the cluster-internal type.
+# The pod specifies the use of a cluster-internal type listener through a temporary volume.
+# The listener-operator will create a service resource object of type clusterIP for this pod and bind it to the pod.
+# When providing services externally, you only need to access the service using its address and port. 
+# You don't need to worry about the pod's address and port.
+#
+# In this test, to facilitate other services accessing the access information provided by the listener, 
+# we write the allocated address and port information into a ConfigMap object using an init container.
+# Other services can retrieve the access information from the ConfigMap object.
+# Note: This is just a test case. In a real application, you should use Listener.Status.IngressAddresses 
+# in the operator logic to create ConfigMap objects for other services.
+
+---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod
+  name: caddy
   labels:
-    name: pod
+    name: caddy
 spec:
   serviceAccountName: test
   initContainers:
@@ -37,7 +50,7 @@ spec:
       apiVersion: v1
       kind: ConfigMap
       metadata:
-        name: config-discovery
+        name: caddy-service-discovery
         ownerReferences:
         - apiVersion: v1
           blockOwnerDeletion: true
@@ -47,31 +60,25 @@ spec:
           uid: $UID
       data:
         url: http://$ADDRESS:$PORT
+      EOF
+      
+      echo "created configmap"
+
     volumeMounts:
     - name: listener
       mountPath: /opt/zncdata/
   containers:
-  - name: main
+  - name: caddy
     image: caddy:2
     command:
     - sh
     - -c
     - |
-      while true; do
-        if [ -d "/opt/zncdata/default-address" ]; then
-          break
-        fi
-        echo "waiting for listener address to be created"
-        sleep 10
-      done
-      PORT=$(cat /opt/zncdata/default-address/ports/http)
-      echo "default listener address: $PORT"
-
       echo "start caddy"
-      caddy file-server --root /usr/share/caddy --listen :$PORT
+      caddy file-server --root /usr/share/caddy --listen :8080
     resources:
       limits:
-        memory: "128Mi"
+        memory: "200Mi"
         cpu: "500m"
     ports:
     - containerPort: 8080

@@ -53,9 +53,9 @@ type PortSpec struct {
 
 // ListenerStatus defines the observed state of Listener
 type ListenerStatus struct {
-	IngressAddress []IngressAddressSpec `json:"ingressAddress,omitempty"`
-	NodePorts      []PortSpec           `json:"nodePorts,omitempty"`
-	ServiceName    string               `json:"serviceName,omitempty"`
+	IngressAddresses []IngressAddressSpec `json:"ingressAddresses,omitempty"`
+	NodePorts        map[string]int32     `json:"nodePorts,omitempty"`
+	ServiceName      string               `json:"serviceName,omitempty"`
 }
 
 type IngressAddressSpec struct {
@@ -67,7 +67,7 @@ type IngressAddressSpec struct {
 	AddressType AddressType `json:"addressType,omitempty"`
 
 	// +kubebuilder:validation:Required
-	Ports *[]PortSpec `json:"ports,omitempty"`
+	Ports map[string]int32 `json:"ports,omitempty"`
 }
 
 //+kubebuilder:object:root=true

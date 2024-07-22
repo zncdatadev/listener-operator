@@ -169,7 +169,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 }
 
 // writeData writes the data to the target path.
-func (n *NodeServer) writeData(targetPath string, data []*util.ListenerIngress) error {
+func (n *NodeServer) writeData(targetPath string, data []util.IngressAddress) error {
 
 	if data == nil {
 		log.V(1).Info("Listener data is nil, skip write data")
@@ -213,7 +213,7 @@ func (n *NodeServer) writeData(targetPath string, data []*util.ListenerIngress) 
 
 }
 
-func (n *NodeServer) writeAddress(targetPath string, data *util.ListenerIngress) error {
+func (n *NodeServer) writeAddress(targetPath string, data util.IngressAddress) error {
 	if err := os.WriteFile(filepath.Join(targetPath, "address"), []byte(data.Address), fs.FileMode(0644)); err != nil {
 		log.Error(err, "Write address to target path error", "path", targetPath)
 		return err
@@ -225,16 +225,12 @@ func (n *NodeServer) writeAddress(targetPath string, data *util.ListenerIngress)
 		return err
 	}
 
-	for _, port := range data.Ports {
-		if port.Name != "" {
-			portStr := strconv.Itoa(int(port.Port))
-			if err := os.WriteFile(filepath.Join(listenerAddressPortPath, port.Name), []byte(portStr), fs.FileMode(0644)); err != nil {
-				return err
-			}
-			log.V(5).Info("Write port to target path", "port", port, "address", data.Address)
-		} else {
-			log.Info("port name is empty, we could not write to empty file name, so ignore it", "port", port, "address", data.Address)
+	for name, port := range data.Ports {
+		portStr := strconv.Itoa(int(port))
+		if err := os.WriteFile(filepath.Join(listenerAddressPortPath, name), []byte(portStr), fs.FileMode(0644)); err != nil {
+			return err
 		}
+		log.V(5).Info("Write port to target path", "port", port, "address", data.Address)
 	}
 	return nil
 }
@@ -272,38 +268,37 @@ func (n *NodeServer) patchPodLabelWithListener(
 	return nil
 }
 
-// getAddresses gets the listener address and ports.
+// getAddresses gets the listener address and ports from the listener status.
 // When get address from listener status, if listener status is not ready,
 // an error will raise. NodeController will retry to get address from listener status.
 func (n *NodeServer) getAddresses(
 	ctx context.Context,
 	listener *listenersv1alpha1.Listener,
 	pod *corev1.Pod,
-) ([]*util.ListenerIngress, error) {
-
+) ([]util.IngressAddress, error) {
 	if len(listener.Status.NodePorts) != 0 {
 		address, err := n.getNodeAddressByPod(ctx, pod)
 		if err != nil {
 			return nil, err
 		}
 		log.V(5).Info("get address from listener status", "address", address, "listener", listener.Name, "namespace", listener.Namespace)
-		return []*util.ListenerIngress{
+		return []util.IngressAddress{
 			{
 				AddressInfo: *address,
 				Ports:       listener.Status.NodePorts,
 			},
 		}, nil
 
-	} else if len(listener.Status.IngressAddress) != 0 {
-		var addresses []*util.ListenerIngress
-		for _, ingressAddress := range listener.Status.IngressAddress {
+	} else if len(listener.Status.IngressAddresses) != 0 {
+		var addresses []util.IngressAddress
+		for _, ingressAddress := range listener.Status.IngressAddresses {
 			log.V(5).Info("get address from listener status", "address", ingressAddress, "listener", listener.Name, "namespace", listener.Namespace)
-			addresses = append(addresses, &util.ListenerIngress{
+			addresses = append(addresses, util.IngressAddress{
 				AddressInfo: util.AddressInfo{
 					Address:     ingressAddress.Address,
 					AddressType: ingressAddress.AddressType,
 				},
-				Ports: *ingressAddress.Ports,
+				Ports: ingressAddress.Ports,
 			})
 		}
 		return addresses, nil
@@ -321,7 +316,12 @@ func (n *NodeServer) getNodeAddressByPod(ctx context.Context, pod *corev1.Pod) (
 		return nil, err
 	}
 
-	return util.GetPriorNodeAddress(node)
+	address, err := util.GetPriorNodeAddress(node)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("get address from node", "address", address, "node", node.Name)
+	return address, nil
 
 }
 
@@ -346,17 +346,18 @@ func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]listenersv1alpha1.PortSpec, e
 					Protocol: port.Protocol,
 					Port:     port.ContainerPort,
 				})
+				log.V(8).Info("get pod port", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
 			} else {
-				log.V(1).Info("port name is empty, so ignore to add listener", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
+				log.Info("port name is empty, so ignore to add listener", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
 			}
 		}
 	}
 
 	if len(ports) == 0 {
-		log.V(1).Info("pod has no vaild ports, please ensure all port has name", "pod", pod.Name, "namespace", pod.Namespace)
+		log.Info("pod has no vaild ports, please ensure all port has name or pod has at least one valid port", "pod", pod.Name, "namespace", pod.Namespace)
 		return nil, status.Error(codes.Internal, "pod has no vaild ports, please ensure all port has name")
 	}
-
+	log.V(5).Info("get pod ports", "ports", ports, "pod", pod.Name, "namespace", pod.Namespace)
 	return ports, nil
 }
 

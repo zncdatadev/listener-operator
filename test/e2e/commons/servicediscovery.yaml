@@ -1,0 +1,39 @@
+# Pass service discovery information through ConfigMap
+# When a pod is created, the ConfigMap object is created with the address and port written by the listener-operator using an init container.
+# Other services retrieve service discovery information from the ConfigMap and use it.
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: access-service
+  labels:
+    name: access-service
+spec:
+  serviceAccountName: test
+  containers:
+  - name: access-service
+    image: busybox:1.35
+    env:
+    - name: URL
+      valueFrom:
+        configMapKeyRef:
+          name: caddy-service-discovery 
+          key: url
+    command:
+    - sh
+    - -c
+    - |
+      echo "accessing at $URL with config discovery"
+      if wget -qO - $URL | grep -q "Caddy works"; then
+        echo "success with config discovery"
+        tail -f /dev/null
+      else
+        echo "failure with config discovery"
+        exit 1
+      fi
+
+      echo "accessing with listener ingress"
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi

@@ -1,0 +1,47 @@
+################### example #################
+# apiVersion: listeners.zncdata.dev/v1alpha1
+# kind: Listener
+# metadata:
+#   creationTimestamp: "2024-07-22T10:34:54Z"
+#   generation: 1
+#   name: pod-cluster-internal
+#   namespace: chainsaw-liberal-squid
+#   ownerReferences:
+#   - apiVersion: v1
+#     blockOwnerDeletion: true
+#     controller: true
+#     kind: PersistentVolume
+#     name: pvc-e187b776-9ee3-45c5-801f-790baa9d6ede
+#     uid: 9497bfb0-76b1-4c88-86f7-2b3bc62c25ee
+#   resourceVersion: "37191"
+#   uid: 2f09a10a-2e23-41c5-9d65-c81523648719
+# spec:
+#   className: cluster-internal
+#   ports:
+#   - name: http
+#     port: 8080
+#     protocol: TCP
+# status:
+#   ingressAddresses:
+#   - address: 10.96.172.39
+#     addressType: IP
+#     ports:
+#       http: 8080
+#   serviceName: pod-cluster-internal
+################### end example #################
+
+---
+apiVersion: listeners.zncdata.dev/v1alpha1
+kind: Listener
+metadata:
+  name: caddy
+spec:
+  className: cluster-internal
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+status:
+  ~.ingressAddresses:
+    addressType: IP
+  serviceName: caddy

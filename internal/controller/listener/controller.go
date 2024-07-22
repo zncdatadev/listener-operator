@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	util "github.com/zncdatadev/listener-operator/pkg/util"
@@ -194,22 +196,21 @@ func (r *ListenerReconciler) buildListenerStatus(
 	// update service NodePorts to status when service type is NodePort
 	switch serviceType {
 	case listenersv1alpha1.ServiceTypeNodePort:
-
 		ports, err := svcReconciler.getNodePorts(service)
 		if err != nil {
 			return nil, err
 		}
-		addresses, err := svcReconciler.getNodesAddress(ctx)
 
+		addresses, err := svcReconciler.getNodesAddress(ctx)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, address := range addresses {
-			status.IngressAddress = append(status.IngressAddress, listenersv1alpha1.IngressAddressSpec{
+			status.IngressAddresses = append(status.IngressAddresses, listenersv1alpha1.IngressAddressSpec{
 				Address:     address.Address,
 				AddressType: address.AddressType,
-				Ports:       &ports,
+				Ports:       ports,
 			})
 		}
 		status.NodePorts = ports
@@ -218,26 +219,26 @@ func (r *ListenerReconciler) buildListenerStatus(
 		if err != nil {
 			return nil, err
 		}
-		status.IngressAddress = append(status.IngressAddress, listenersv1alpha1.IngressAddressSpec{
+		status.IngressAddresses = append(status.IngressAddresses, listenersv1alpha1.IngressAddressSpec{
 			Address:     address,
 			AddressType: listenersv1alpha1.AddressTypeIP,
-			Ports:       &servicePorts,
+			Ports:       servicePorts,
 		})
 	case listenersv1alpha1.ServiceTypeClusterIP:
 		address, err := svcReconciler.getClusterIp(service)
 		if err != nil {
 			return nil, err
 		}
-		status.IngressAddress = append(status.IngressAddress, listenersv1alpha1.IngressAddressSpec{
+		status.IngressAddresses = append(status.IngressAddresses, listenersv1alpha1.IngressAddressSpec{
 			Address:     address,
 			AddressType: listenersv1alpha1.AddressTypeIP,
-			Ports:       &servicePorts,
+			Ports:       servicePorts,
 		})
 	default:
 		return nil, errors.New("unknown service type: " + string(serviceType))
 
 	}
-	logger.Info("Listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
+	logger.V(5).Info("Listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
 	return status, nil
 }
 
@@ -251,7 +252,31 @@ func (r *ListenerReconciler) updateListener(ctx context.Context, listener *liste
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	mapFunc := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
+		endpoints := o.(*corev1.Endpoints)
+		list := &listenersv1alpha1.ListenerList{}
+		if err := r.List(ctx, list, client.InNamespace(endpoints.Namespace)); err != nil {
+			logger.Error(err, "Failed to list listeners")
+			return nil
+		}
+
+		var requests []reconcile.Request
+		for _, listener := range list.Items {
+			if listener.Status.ServiceName == endpoints.Name {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: client.ObjectKey{
+						Name:      listener.Name,
+						Namespace: listener.Namespace,
+					},
+				})
+			}
+		}
+		return requests
+	})
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&listenersv1alpha1.Listener{}).
+		Watches(&corev1.Endpoints{}, mapFunc).
 		Complete(r)
 }

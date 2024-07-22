@@ -1,0 +1,48 @@
+# Description: This test checks if the listener ingress is working as expected.
+# The listener ingress is a service that is exposed to the cluster internal network.
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: access-listeneringress
+  labels:
+    name: access-listeneringress
+spec:
+  serviceAccountName: test
+  containers:
+  - name: kubectl
+    image: bitnami/kubectl:1.22.2
+    command:
+    - sh
+    - -c
+    - |
+      ERROR_MSG="failure with listener ingress"
+      SUCCESS_MSG="success with listener ingress"
+      echo "accessing with listener ingress"
+
+      # get the listener
+      listener=$(kubectl get listener caddy -o jsonpath='{.status.ingressAddresses[0].address}')
+      if [ -z "$listener" ]; then
+        echo "listener address not found"
+        exit 1
+      fi
+
+      # get the port
+      port=$(kubectl get listener caddy -o jsonpath='{.status.ingressAddresses[0].ports.http}')
+      if [ -z "$port" ]; then
+        echo "listener port not found"
+        exit 1
+      fi
+
+      # access the listener
+      if wget -qO - http://$listener:$port | grep -q "Caddy works"; then
+        echo $SUCCESS_MSG
+        tail -f /dev/null
+      else
+        echo $ERROR_MSG
+        exit 1
+      fi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 500Mi

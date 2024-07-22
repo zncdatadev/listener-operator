@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
-	"github.com/zncdatadev/listener-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	util "github.com/zncdatadev/listener-operator/pkg/util"
 )
 
 type ServiceReconciler struct {
@@ -101,41 +102,33 @@ func (s *ServiceReconciler) describe(
 	return service, nil
 }
 
-func (s *ServiceReconciler) getNodePorts(service *corev1.Service) ([]listenersv1alpha1.PortSpec, error) {
-
+func (s *ServiceReconciler) getNodePorts(service *corev1.Service) (map[string]int32, error) {
 	if service.Spec.Type != corev1.ServiceTypeNodePort {
 		return nil, errors.New("service is not of type NodePort")
 	}
 
-	ports := []listenersv1alpha1.PortSpec{}
+	ports := map[string]int32{}
 	for _, port := range service.Spec.Ports {
-		if port.Name != "" {
-			ports = append(ports, listenersv1alpha1.PortSpec{
-				Name:     port.Name,
-				Protocol: port.Protocol,
-				Port:     port.NodePort,
-			})
-		} else {
-			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
+		if port.Name == "" {
+			logger.V(5).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
+			continue
 		}
+		ports[port.Name] = port.NodePort
 	}
+	logger.Info("get node ports", "ports", ports, "service", service.Name, "namespace", service.Namespace)
 	return ports, nil
 }
 
-func (s *ServiceReconciler) getPorts(service *corev1.Service) ([]listenersv1alpha1.PortSpec, error) {
-	ports := []listenersv1alpha1.PortSpec{}
+func (s *ServiceReconciler) getPorts(service *corev1.Service) (map[string]int32, error) {
+	ports := map[string]int32{}
 	for _, port := range service.Spec.Ports {
-		if port.Name != "" {
-			ports = append(ports, listenersv1alpha1.PortSpec{
-				Name:     port.Name,
-				Protocol: port.Protocol,
-				Port:     port.Port,
-			})
-		} else {
+		if port.Name == "" {
 			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
+			continue
 		}
-
+		ports[port.Name] = port.Port
 	}
+	logger.Info("get ports", "ports", ports, "service", service.Name, "namespace", service.Namespace)
 	return ports, nil
 
 }
@@ -167,10 +160,20 @@ func (s *ServiceReconciler) getServiceType(service *corev1.Service) listenersv1a
 }
 
 func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.AddressInfo, error) {
+	ns := s.getNamespace()
+	name := s.getName()
 
 	endpoints := &corev1.Endpoints{}
-	if err := s.client.Get(ctx, client.ObjectKey{Namespace: s.getNamespace(), Name: s.getName()}, endpoints); err != nil {
+	if err := s.client.Get(ctx, client.ObjectKey{Namespace: ns, Name: name}, endpoints); err != nil {
+
 		return nil, err
+	}
+	// Only when the pods associated with the service are available, endpoints will have a value, otherwise it will be empty.
+	// Return an empty address when endpoints are not ready.
+	// When endpoints are ready, this method will be called again to retrieve the addresses.
+	if endpoints.Subsets == nil || len(endpoints.Subsets) == 0 {
+		logger.V(5).Info("endpoints is not ready", "service", name, "namespace", ns)
+		return []util.AddressInfo{}, nil
 	}
 
 	nodeNames := []string{}
@@ -183,22 +186,19 @@ func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.Address
 
 	addresses := []util.AddressInfo{}
 
-	logger.V(5).Info("get nodes address", "nodes", nodeNames)
-
 	for _, nodeName := range nodeNames {
 		node := &corev1.Node{}
 		if err := s.client.Get(ctx, client.ObjectKey{Namespace: "", Name: nodeName}, node); err != nil {
 			return nil, err
 		}
-
 		address, err := util.GetPriorNodeAddress(node)
-
 		if err != nil {
 			return nil, err
 		}
-
+		logger.V(5).Info("get node address", "address", address.Address, "node", node.Name)
 		addresses = append(addresses, *address)
-
 	}
+
+	logger.Info("get nodes address", "addresses", addresses, "service", name, "namespace", ns)
 	return addresses, nil
 }

@@ -1,9 +1,9 @@
 module github.com/zncdatadev/listener-operator
 
-go 1.22.2
+go 1.22.4
 
 require (
-	github.com/cisco-open/k8s-objectmatcher v1.10.0
+	github.com/cisco-open/k8s-objectmatcher v1.9.0
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.18.1
 	github.com/onsi/ginkgo/v2 v2.19.0
