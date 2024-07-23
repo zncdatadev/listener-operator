@@ -62,7 +62,7 @@ spec:
           status:
             description: ListenerStatus defines the observed state of Listener
             properties:
-              ingressAddress:
+              ingressAddresses:
                 items:
                   properties:
                     address:
@@ -73,33 +73,17 @@ spec:
                       - IP
                       type: string
                     ports:
-                      items:
-                        properties:
-                          name:
-                            type: string
-                          port:
-                            format: int32
-                            type: integer
-                          protocol:
-                            default: TCP
-                            type: string
-                        type: object
-                      type: array
+                      additionalProperties:
+                        format: int32
+                        type: integer
+                      type: object
                   type: object
                 type: array
               nodePorts:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    port:
-                      format: int32
-                      type: integer
-                    protocol:
-                      default: TCP
-                      type: string
-                  type: object
-                type: array
+                additionalProperties:
+                  format: int32
+                  type: integer
+                type: object
               serviceName:
                 type: string
             type: object

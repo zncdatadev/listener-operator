@@ -48,9 +48,6 @@ type ListenerClassReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ListenerClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
-
-	// TODO(user): your logic here
-
 	return ctrl.Result{}, nil
 }
 

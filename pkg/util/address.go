@@ -12,9 +12,9 @@ type AddressInfo struct {
 	AddressType listenersv1alpha1.AddressType
 }
 
-type ListenerIngress struct {
+type IngressAddress struct {
 	AddressInfo
-	Ports []listenersv1alpha1.PortSpec
+	Ports map[string]int32
 }
 
 func GetPriorNodeAddress(node *corev1.Node) (*AddressInfo, error) {
