@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	volumeCaps = []csi.VolumeCapability_AccessMode{
+	volumeCaps = []*csi.VolumeCapability_AccessMode{
 		{
 			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 		},
@@ -49,6 +49,7 @@ func newCreateVolumeRequestParamsFromMap(params map[string]string) (*createVolum
 }
 
 type ControllerServer struct {
+	csi.UnimplementedControllerServer
 	client  client.Client
 	volumes map[string]int64
 }
@@ -236,14 +237,6 @@ func validateCreateVolumeRequest(request *csi.CreateVolumeRequest) error {
 	return nil
 }
 
-func (c *ControllerServer) ControllerPublishVolume(ctx context.Context, request *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (c *ControllerServer) ControllerUnpublishVolume(ctx context.Context, request *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
 func (c *ControllerServer) ValidateVolumeCapabilities(ctx context.Context, request *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 
 	if request.VolumeId == "" {
@@ -303,30 +296,6 @@ func (c *ControllerServer) ControllerGetCapabilities(ctx context.Context, reques
 	}, nil
 }
 
-func (c *ControllerServer) CreateSnapshot(ctx context.Context, request *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (c *ControllerServer) DeleteSnapshot(ctx context.Context, request *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (c *ControllerServer) ListSnapshots(ctx context.Context, request *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (c *ControllerServer) ControllerExpandVolume(ctx context.Context, request *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (c *ControllerServer) ControllerGetVolume(ctx context.Context, request *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (c *ControllerServer) ControllerModifyVolume(ctx context.Context, request *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
 func isValidVolumeCapabilities(volCaps []*csi.VolumeCapability) bool {
 	foundAll := true
 	for _, c := range volCaps {
@@ -347,8 +316,8 @@ func isSupportVolumeCapabilities(cap *csi.VolumeCapability) bool {
 	default:
 		return false
 	}
-	for _, c := range volumeCaps {
-		if c.GetMode() == cap.AccessMode.GetMode() {
+	for _, volumeCap := range volumeCaps {
+		if volumeCap.GetMode() == cap.AccessMode.GetMode() {
 			return true
 		}
 	}

@@ -73,6 +73,7 @@ func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
 var _ csi.NodeServer = &NodeServer{}
 
 type NodeServer struct {
+	csi.UnimplementedNodeServer
 	mounter mount.Interface
 	nodeID  string
 	client  client.Client
@@ -638,14 +639,6 @@ func (n *NodeServer) NodeUnstageVolume(ctx context.Context, request *csi.NodeUns
 	}
 
 	return &csi.NodeUnstageVolumeResponse{}, nil
-}
-
-func (n *NodeServer) NodeGetVolumeStats(ctx context.Context, request *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
-}
-
-func (n NodeServer) NodeExpandVolume(ctx context.Context, request *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (n *NodeServer) NodeGetCapabilities(ctx context.Context, request *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
