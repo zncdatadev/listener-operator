@@ -28,7 +28,7 @@ spec:
       fi
 
       # get the port
-      port=$(kubectl get listener caddy -o jsonpath='{.status.ingressAddresses[0].ports.http}')
+      port=$(kubectl get listener caddy -o jsonpath='{.status.nodePorts.http}')
       if [ -z "$port" ]; then
         echo "listener port not found"
         exit 1

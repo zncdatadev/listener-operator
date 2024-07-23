@@ -16,7 +16,7 @@
 #   resourceVersion: "49702"
 #   uid: bb0a68f0-07b5-445f-a261-13b34768be57
 # spec:
-#   className: external-stable
+#   className: external-unstable
 #   ports:
 #   - name: http
 #     port: 8080
@@ -38,7 +38,7 @@ kind: Listener
 metadata:
   name: caddy
 spec:
-  className: external-stable
+  className: external-unstable
   ports:
   - name: http
     port: 8080
