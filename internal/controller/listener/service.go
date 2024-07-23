@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,12 +16,12 @@ import (
 
 type ServiceReconciler struct {
 	client client.Client
-	cr     *listenersv1alpha1.Listener
+	cr     *znclistenersv1alpha1.Listener
 }
 
 func NewServiceReconciler(
 	client client.Client,
-	cr *listenersv1alpha1.Listener,
+	cr *znclistenersv1alpha1.Listener,
 ) *ServiceReconciler {
 	return &ServiceReconciler{
 		client: client,

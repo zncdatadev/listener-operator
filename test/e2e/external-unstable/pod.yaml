@@ -1,5 +1,5 @@
-# Description: Example Test listeners of the external-stable type.
-# The pod specifies the use of a external-stable type listener through a temporary volume.
+# Description: Example Test listeners of the external-unstable type.
+# The pod specifies the use of a external-unstable type listener through a temporary volume.
 # The listener-operator will create a service resource object of type clusterIP for this pod and bind it to the pod.
 # When providing services externally, you only need to access the service using its address and port. 
 # You don't need to worry about the pod's address and port.
@@ -102,7 +102,7 @@ spec:
       volumeClaimTemplate:
         metadata:
           annotations:
-            listeners.zncdata.dev/listener-class: external-stable
+            listeners.zncdata.dev/listener-class: external-unstable
         spec:
           accessModes: ["ReadWriteOnce"]
           storageClassName: listeners.zncdata.dev

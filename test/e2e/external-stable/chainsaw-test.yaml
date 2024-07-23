@@ -1,7 +1,7 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: external-unstable
+  name: external-stable
 spec:
   steps:
   - try:
@@ -31,10 +31,10 @@ spec:
         duration: 10s  # wait for the pod to be ready
     - assert:
         file: ../commons/pod-assert.yaml
-    - assert:
-        file: listener-assert.yaml
     - apply:
         file: ../commons/servicediscovery.yaml
+    - assert:
+        file: listener-assert.yaml
     - apply:
         file: listeneringress.yaml
     - sleep:

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"maps"
 
+	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,7 +62,7 @@ type ListenerReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	existInstance := &listenersv1alpha1.Listener{}
+	existInstance := &znclistenersv1alpha1.Listener{}
 
 	if err := r.Get(ctx, req.NamespacedName, existInstance); err != nil {
 		if client.IgnoreNotFound(err) == nil {
@@ -155,7 +156,7 @@ func (r *ListenerReconciler) getServiceTypeFromListenerClass(
 	}
 }
 
-func (r *ListenerReconciler) getServiceMatchLabeles(listener *listenersv1alpha1.Listener) (map[string]string, error) {
+func (r *ListenerReconciler) getServiceMatchLabeles(listener *znclistenersv1alpha1.Listener) (map[string]string, error) {
 	labels := map[string]string{}
 
 	if listener.Spec.ExtraPodMatchLabels != nil {
@@ -172,9 +173,9 @@ func (r *ListenerReconciler) getServiceMatchLabeles(listener *listenersv1alpha1.
 func (r *ListenerReconciler) buildListenerStatus(
 	ctx context.Context,
 	client client.Client,
-	listener *listenersv1alpha1.Listener,
-) (*listenersv1alpha1.ListenerStatus, error) {
-	status := &listenersv1alpha1.ListenerStatus{
+	listener *znclistenersv1alpha1.Listener,
+) (*znclistenersv1alpha1.ListenerStatus, error) {
+	status := &znclistenersv1alpha1.ListenerStatus{
 		ServiceName: listener.Name,
 	}
 	svcReconciler := &ServiceReconciler{
@@ -207,7 +208,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 		}
 
 		for _, address := range addresses {
-			status.IngressAddresses = append(status.IngressAddresses, listenersv1alpha1.IngressAddressSpec{
+			status.IngressAddresses = append(status.IngressAddresses, znclistenersv1alpha1.IngressAddressSpec{
 				Address:     address.Address,
 				AddressType: address.AddressType,
 				Ports:       ports,
@@ -219,9 +220,9 @@ func (r *ListenerReconciler) buildListenerStatus(
 		if err != nil {
 			return nil, err
 		}
-		status.IngressAddresses = append(status.IngressAddresses, listenersv1alpha1.IngressAddressSpec{
+		status.IngressAddresses = append(status.IngressAddresses, znclistenersv1alpha1.IngressAddressSpec{
 			Address:     address,
-			AddressType: listenersv1alpha1.AddressTypeIP,
+			AddressType: znclistenersv1alpha1.AddressTypeIP,
 			Ports:       servicePorts,
 		})
 	case listenersv1alpha1.ServiceTypeClusterIP:
@@ -229,9 +230,9 @@ func (r *ListenerReconciler) buildListenerStatus(
 		if err != nil {
 			return nil, err
 		}
-		status.IngressAddresses = append(status.IngressAddresses, listenersv1alpha1.IngressAddressSpec{
+		status.IngressAddresses = append(status.IngressAddresses, znclistenersv1alpha1.IngressAddressSpec{
 			Address:     address,
-			AddressType: listenersv1alpha1.AddressTypeIP,
+			AddressType: znclistenersv1alpha1.AddressTypeIP,
 			Ports:       servicePorts,
 		})
 	default:
@@ -242,7 +243,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 	return status, nil
 }
 
-func (r *ListenerReconciler) updateListener(ctx context.Context, listener *listenersv1alpha1.Listener) (ctrl.Result, error) {
+func (r *ListenerReconciler) updateListener(ctx context.Context, listener *znclistenersv1alpha1.Listener) (ctrl.Result, error) {
 	err := r.Status().Update(ctx, listener)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -255,7 +256,7 @@ func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	mapFunc := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
 		endpoints := o.(*corev1.Endpoints)
-		list := &listenersv1alpha1.ListenerList{}
+		list := &znclistenersv1alpha1.ListenerList{}
 		if err := r.List(ctx, list, client.InNamespace(endpoints.Namespace)); err != nil {
 			logger.Error(err, "Failed to list listeners")
 			return nil
@@ -276,7 +277,7 @@ func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&listenersv1alpha1.Listener{}).
+		For(&znclistenersv1alpha1.Listener{}).
 		Watches(&corev1.Endpoints{}, mapFunc).
 		Complete(r)
 }
