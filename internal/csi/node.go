@@ -11,17 +11,18 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/mount"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	"github.com/zncdatadev/listener-operator/pkg/util"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // volumeContext is the struct for create Volume ctx from PVC annotations
@@ -250,7 +251,7 @@ func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath stri
 func (n *NodeServer) patchPodLabelWithListener(
 	ctx context.Context,
 	pod *corev1.Pod,
-	listener *listenersv1alpha1.Listener,
+	listener *znclistenersv1alpha1.Listener,
 ) error {
 	// patch pod label with listener name
 	copyedPod := pod.DeepCopy()
@@ -273,7 +274,7 @@ func (n *NodeServer) patchPodLabelWithListener(
 // an error will raise. NodeController will retry to get address from listener status.
 func (n *NodeServer) getAddresses(
 	ctx context.Context,
-	listener *listenersv1alpha1.Listener,
+	listener *znclistenersv1alpha1.Listener,
 	pod *corev1.Pod,
 ) ([]util.IngressAddress, error) {
 	if len(listener.Status.NodePorts) != 0 {
@@ -336,12 +337,12 @@ func (n *NodeServer) getPod(ctx context.Context, podName, podNamespace string) (
 	return pod, nil
 }
 
-func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]listenersv1alpha1.PortSpec, error) {
-	ports := []listenersv1alpha1.PortSpec{}
+func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]znclistenersv1alpha1.PortSpec, error) {
+	ports := []znclistenersv1alpha1.PortSpec{}
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
 			if port.Name != "" {
-				ports = append(ports, listenersv1alpha1.PortSpec{
+				ports = append(ports, znclistenersv1alpha1.PortSpec{
 					Name:     port.Name,
 					Protocol: port.Protocol,
 					Port:     port.ContainerPort,
@@ -389,10 +390,10 @@ func (n *NodeServer) getPV(ctx context.Context, pvName string) (*corev1.Persiste
 // listener is createOrUpdate with listener class,
 // listener status my not updated, then you will get error.
 // Do not warry, we can get listener status in the next time.
-func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext volumeContext) (*listenersv1alpha1.Listener, error) {
+func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext volumeContext) (*znclistenersv1alpha1.Listener, error) {
 
 	if volumeContext.ListenerName != nil {
-		listener := &listenersv1alpha1.Listener{}
+		listener := &znclistenersv1alpha1.Listener{}
 		if err := n.client.Get(ctx, client.ObjectKey{
 			Name:      *volumeContext.ListenerName,
 			Namespace: *volumeContext.PodNamespace,
@@ -447,8 +448,8 @@ func (n *NodeServer) createOrUpdateListener(
 	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
 	labels map[string]string,
-	ports []listenersv1alpha1.PortSpec,
-) (*listenersv1alpha1.Listener, error) {
+	ports []znclistenersv1alpha1.PortSpec,
+) (*znclistenersv1alpha1.Listener, error) {
 
 	listener, err := n.buildListener(
 		*volumeContext.Pod,
@@ -502,11 +503,11 @@ func (n *NodeServer) buildListener(
 	owner client.Object,
 	labales map[string]string,
 	listenerClassName string,
-	ports []listenersv1alpha1.PortSpec,
-) (*listenersv1alpha1.Listener, error) {
+	ports []znclistenersv1alpha1.PortSpec,
+) (*znclistenersv1alpha1.Listener, error) {
 
-	obj := &listenersv1alpha1.Listener{
-		Spec: listenersv1alpha1.ListenerSpec{
+	obj := &znclistenersv1alpha1.Listener{
+		Spec: znclistenersv1alpha1.ListenerSpec{
 			ClassName: listenerClassName,
 			Ports:     ports,
 		},

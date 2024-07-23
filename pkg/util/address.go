@@ -3,13 +3,13 @@ package util
 import (
 	"errors"
 
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
+	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
 type AddressInfo struct {
 	Address     string
-	AddressType listenersv1alpha1.AddressType
+	AddressType znclistenersv1alpha1.AddressType
 }
 
 type IngressAddress struct {
@@ -22,17 +22,17 @@ func GetPriorNodeAddress(node *corev1.Node) (*AddressInfo, error) {
 		if address.Type == corev1.NodeExternalIP {
 			return &AddressInfo{
 				Address:     address.Address,
-				AddressType: listenersv1alpha1.AddressTypeIP,
+				AddressType: znclistenersv1alpha1.AddressTypeIP,
 			}, nil
 		} else if address.Type == corev1.NodeInternalIP {
 			return &AddressInfo{
 				Address:     address.Address,
-				AddressType: listenersv1alpha1.AddressTypeIP,
+				AddressType: znclistenersv1alpha1.AddressTypeIP,
 			}, nil
 		} else if address.Type == corev1.NodeHostName {
 			return &AddressInfo{
 				Address:     address.Address,
-				AddressType: listenersv1alpha1.AddressTypeHostname,
+				AddressType: znclistenersv1alpha1.AddressTypeHostname,
 			}, nil
 		}
 	}

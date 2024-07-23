@@ -28,7 +28,7 @@ spec:
     - apply:
         file: pod.yaml
     - sleep:
-        duration: 5s  # wait for the pod to be ready
+        duration: 10s  # wait for the pod to be ready
     - assert:
         file: ../commons/pod-assert.yaml
     - assert:
@@ -38,7 +38,7 @@ spec:
     - apply:
         file: listeneringress.yaml
     - sleep:
-        duration: 20s
+        duration: 10s
     - assert:
         file: ../commons/servicediscovery-assert.yaml
     - assert:
