@@ -24,7 +24,7 @@ const (
 
 	// default values
 	CSIDriverImageRepository = "quay.io/zncdatadev/listener-csi-driver"
-	CSIDriverImageTag        = "v0.0.1"
+	CSIDriverImageTag        = "0.0.0-dev"
 	CSIDriverImagePullpolicy = "IfNotPresent"
 
 	NodeDriverRegistrarImageRepository = "registry.k8s.io/sig-storage/csi-node-driver-registrar"
@@ -54,7 +54,7 @@ type CSIDriverSpec struct {
 	Repository string `json:"repository,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:="v0.0.1"
+	// +kubebuilder:default:="0.0.0-dev"
 	Tag string `json:"tag,omitempty"`
 
 	// +kubebuilder:validation:Optional
