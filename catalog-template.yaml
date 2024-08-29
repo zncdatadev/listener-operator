@@ -113,7 +113,7 @@ schema: olm.channel
 package: listener-operator
 name: stable
 entries:
-- name: listener-operator.v0.0.1
+- name: listener-operator.v0.0.0-dev
 ---
 schema: olm.bundle
-image: quay.io/zncdatadev/listener-operator-bundle:v0.0.1
+image: quay.io/zncdatadev/listener-operator-bundle:0.0.0-dev
