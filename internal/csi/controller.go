@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	listenersv1alph1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
-	util "github.com/zncdatadev/listener-operator/pkg/util"
+	"github.com/zncdatadev/operator-go/pkg/constants"
 )
 
 var (
@@ -95,7 +95,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener Volume refer error: %v", err)
 	}
 
-	listenerClassName, exist := volumeCtx[util.ListenersZncdataListenerClass]
+	listenerClassName, exist := volumeCtx[constants.AnnotationListenersClass]
 
 	if !exist {
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener class name error: %v", err)
@@ -175,10 +175,10 @@ func (c *ControllerServer) getVolumeContext(params *createVolumeRequestParams) (
 	}
 
 	annotations := pvc.GetAnnotations()
-	_, classNameExists := annotations[util.ListenersZncdataListenerClass]
+	_, classNameExists := annotations[constants.AnnotationListenerName]
 
 	if !classNameExists {
-		return nil, errors.New("required annotations '" + util.ListenersZncdataListenerClass + "' not found in PVC")
+		return nil, errors.New("required annotations '" + constants.AnnotationListenerName + "' not found in PVC")
 	}
 
 	return annotations, nil

@@ -12,6 +12,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	"github.com/zncdatadev/operator-go/pkg/constants"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -60,10 +61,10 @@ func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
 	if val, ok := parameters[STORAGE_KUBERNETES_CSI_PROVISIONER_IDENTITY]; ok {
 		v.Provisioner = &val
 	}
-	if val, ok := parameters[util.ListenersZncdataListenerClass]; ok {
+	if val, ok := parameters[constants.AnnotationListenerName]; ok {
 		v.ListenerClassName = &val
 	}
-	if val, ok := parameters[util.ListenersZncdataListenerName]; ok {
+	if val, ok := parameters[constants.AnnotationListenerName]; ok {
 		v.ListenerName = &val
 	}
 

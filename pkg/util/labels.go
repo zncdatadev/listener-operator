@@ -1,8 +1,10 @@
 package util
 
+import "github.com/zncdatadev/operator-go/pkg/constants"
+
 func ListenerLabelsForPod(listenerClass, listenerName string) map[string]string {
 	return map[string]string{
-		ListenersZncdataListenerClass: listenerClass,
-		ListenersZncdataListenerName:  listenerName,
+		constants.AnnotationListenersClass: listenerClass,
+		constants.AnnotationListenerName:   listenerName,
 	}
 }
