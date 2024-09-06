@@ -5,6 +5,42 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - endpoints
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - nodes
+  - pods
+  - serviceaccounts
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - apps
   resources:
   - daemonsets
@@ -17,144 +53,10 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ""
-  resources:
-  - endpoints
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - services
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - listeners.zncdata.dev
   resources:
   - listenerclasses
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - listeners.zncdata.dev
-  resources:
-  - listenerclasses/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - listeners.zncdata.dev
-  resources:
-  - listenerclasses/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - listeners.zncdata.dev
-  resources:
   - listenercsis
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - listeners.zncdata.dev
-  resources:
-  - listenercsis/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - listeners.zncdata.dev
-  resources:
-  - listenercsis/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - listeners.zncdata.dev
-  resources:
   - listeners
   verbs:
   - create
@@ -167,12 +69,16 @@ rules:
 - apiGroups:
   - listeners.zncdata.dev
   resources:
+  - listenerclasses/finalizers
+  - listenercsis/finalizers
   - listeners/finalizers
   verbs:
   - update
 - apiGroups:
   - listeners.zncdata.dev
   resources:
+  - listenerclasses/status
+  - listenercsis/status
   - listeners/status
   verbs:
   - get
@@ -182,16 +88,6 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - clusterroles
   verbs:
   - create
@@ -204,17 +100,6 @@ rules:
   - storage.k8s.io
   resources:
   - csidrivers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - storage.k8s.io
-  resources:
   - storageclasses
   verbs:
   - create

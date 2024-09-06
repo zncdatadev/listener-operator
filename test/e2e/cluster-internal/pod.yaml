@@ -104,7 +104,7 @@ spec:
       volumeClaimTemplate:
         metadata:
           annotations:
-            listeners.zncdata.dev/listener-class: cluster-internal
+            listeners.zncdata.dev/class: cluster-internal
         spec:
           accessModes: ["ReadWriteOnce"]
           storageClassName: listeners.zncdata.dev

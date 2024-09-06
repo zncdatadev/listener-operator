@@ -166,13 +166,13 @@ func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.Address
 
 	endpoints := &corev1.Endpoints{}
 	if err := s.client.Get(ctx, client.ObjectKey{Namespace: ns, Name: name}, endpoints); err != nil {
-
 		return nil, err
 	}
+
 	// Only when the pods associated with the service are available, endpoints will have a value, otherwise it will be empty.
 	// Return an empty address when endpoints are not ready.
 	// When endpoints are ready, this method will be called again to retrieve the addresses.
-	if endpoints.Subsets == nil || len(endpoints.Subsets) == 0 {
+	if len(endpoints.Subsets) == 0 {
 		logger.V(5).Info("endpoints is not ready", "service", name, "namespace", ns)
 		return []util.AddressInfo{}, nil
 	}

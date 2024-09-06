@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	listenersv1alph1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
-	util "github.com/zncdatadev/listener-operator/pkg/util"
+	"github.com/zncdatadev/operator-go/pkg/constants"
 )
 
 var (
@@ -95,7 +95,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener Volume refer error: %v", err)
 	}
 
-	listenerClassName, exist := volumeCtx[util.ListenersZncdataListenerClass]
+	listenerClassName, exist := volumeCtx[constants.AnnotationListenersClass]
 
 	if !exist {
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener class name error: %v", err)
@@ -164,21 +164,21 @@ func (c *ControllerServer) getPvc(name, namespace string) (*corev1.PersistentVol
 //   - return annotations.
 //
 // You can use custom annotations:
-//   - listeners.zncdata.dev/listener-class: <listener-class-name>	# required
-//   - listeners.zncdata.dev/listener-name: <listener-name>	# optional
+//   - listeners.zncdata.dev/class: <class-name>	# required
+//   - listeners.zncdata.dev/name: <name>	# optional
 func (c *ControllerServer) getVolumeContext(params *createVolumeRequestParams) (map[string]string, error) {
 
 	pvc, err := c.getPvc(params.PVCName, params.pvcNamespace)
 	if err != nil {
-
 		return nil, status.Errorf(codes.NotFound, "PVC: %q, Namespace: %q. Detail: %v", params.PVCName, params.pvcNamespace, err)
 	}
 
 	annotations := pvc.GetAnnotations()
-	_, classNameExists := annotations[util.ListenersZncdataListenerClass]
+	log.V(5).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
 
+	_, classNameExists := annotations[constants.AnnotationListenersClass]
 	if !classNameExists {
-		return nil, errors.New("required annotations '" + util.ListenersZncdataListenerClass + "' not found in PVC")
+		return nil, errors.New("required annotations '" + constants.AnnotationListenersClass + "' not found in PVC")
 	}
 
 	return annotations, nil
