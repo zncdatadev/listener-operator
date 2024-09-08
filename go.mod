@@ -3,13 +3,12 @@ module github.com/zncdatadev/listener-operator
 go 1.23.0
 
 require (
-	github.com/cisco-open/k8s-objectmatcher v1.10.0
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.18.1
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
-	github.com/zncdatadev/operator-go v0.9.1
+	github.com/zncdatadev/operator-go v0.9.2
 	google.golang.org/grpc v1.65.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
@@ -21,6 +20,7 @@ require (
 	emperror.dev/errors v0.8.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cisco-open/k8s-objectmatcher v1.10.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.0 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect

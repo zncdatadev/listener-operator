@@ -4,24 +4,24 @@ import (
 	"context"
 	"errors"
 
-	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	operatorclient "github.com/zncdatadev/operator-go/pkg/client"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	util "github.com/zncdatadev/listener-operator/pkg/util"
 )
 
 type ServiceReconciler struct {
 	client client.Client
-	cr     *znclistenersv1alpha1.Listener
+	cr     *operatorlistenersv1alpha1.Listener
 }
 
 func NewServiceReconciler(
 	client client.Client,
-	cr *znclistenersv1alpha1.Listener,
+	cr *operatorlistenersv1alpha1.Listener,
 ) *ServiceReconciler {
 	return &ServiceReconciler{
 		client: client,
@@ -69,7 +69,7 @@ func (s *ServiceReconciler) createService(
 		return ctrl.Result{}, err
 	}
 
-	if mutant, err := util.CreateOrUpdate(ctx, s.client, service); err != nil {
+	if mutant, err := operatorclient.CreateOrUpdate(ctx, s.client, service); err != nil {
 		return ctrl.Result{}, err
 	} else if mutant {
 		// we need to requeue the request to update the service immediately!
@@ -156,8 +156,8 @@ func (s *ServiceReconciler) getClusterIp(service *corev1.Service) (string, error
 	return service.Spec.ClusterIP, nil
 }
 
-func (s *ServiceReconciler) getServiceType(service *corev1.Service) listenersv1alpha1.ServiceType {
-	return listenersv1alpha1.ServiceType(service.Spec.Type)
+func (s *ServiceReconciler) getServiceType(service *corev1.Service) corev1.ServiceType {
+	return corev1.ServiceType(service.Spec.Type)
 }
 
 func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.AddressInfo, error) {

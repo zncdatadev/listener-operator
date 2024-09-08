@@ -116,7 +116,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	go get github.com/zncdatadev/operator-go@v0.9.1
+	go get github.com/zncdatadev/operator-go@v0.9.2
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="github.com/zncdatadev/operator-go/pkg/apis/listeners/..." output:crd:artifacts:config=config/crd/bases
 
