@@ -21,7 +21,7 @@ import (
 	"errors"
 	"maps"
 
-	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	util "github.com/zncdatadev/listener-operator/pkg/util"
 )
 
@@ -62,7 +61,7 @@ type ListenerReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	existInstance := &znclistenersv1alpha1.Listener{}
+	existInstance := &operatorlistenersv1alpha1.Listener{}
 
 	if err := r.Get(ctx, req.NamespacedName, existInstance); err != nil {
 		if client.IgnoreNotFound(err) == nil {
@@ -126,8 +125,8 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *ListenerReconciler) getListenerClass(
 	ctx context.Context,
 	name, namespace string,
-) (*listenersv1alpha1.ListenerClass, error) {
-	listenerClass := &listenersv1alpha1.ListenerClass{}
+) (*operatorlistenersv1alpha1.ListenerClass, error) {
+	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
 	if err := r.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, listenerClass); err != nil {
 		return nil, err
 	}
@@ -137,26 +136,26 @@ func (r *ListenerReconciler) getListenerClass(
 func (r *ListenerReconciler) getServiceTypeFromListenerClass(
 	ctx context.Context,
 	name, namespace string,
-) (*listenersv1alpha1.ServiceType, error) {
+) (*corev1.ServiceType, error) {
 	listenerClass, err := r.getListenerClass(ctx, name, namespace)
 
 	if err != nil {
 		return nil, err
 	}
 
-	switch listenerClass.Spec.ServiceType {
-	case listenersv1alpha1.ServiceTypeNodePort:
-		return &listenerClass.Spec.ServiceType, nil
-	case listenersv1alpha1.ServiceTypeLoadBalancer:
-		return &listenerClass.Spec.ServiceType, nil
-	case listenersv1alpha1.ServiceTypeClusterIP:
-		return &listenerClass.Spec.ServiceType, nil
+	switch *listenerClass.Spec.ServiceType {
+	case corev1.ServiceTypeNodePort:
+		return listenerClass.Spec.ServiceType, nil
+	case corev1.ServiceTypeLoadBalancer:
+		return listenerClass.Spec.ServiceType, nil
+	case corev1.ServiceTypeClusterIP:
+		return listenerClass.Spec.ServiceType, nil
 	default:
-		return nil, errors.New("unknown service type: " + string(listenerClass.Spec.ServiceType))
+		return nil, errors.New("unknown service type: " + string(*listenerClass.Spec.ServiceType))
 	}
 }
 
-func (r *ListenerReconciler) getServiceMatchLabeles(listener *znclistenersv1alpha1.Listener) (map[string]string, error) {
+func (r *ListenerReconciler) getServiceMatchLabeles(listener *operatorlistenersv1alpha1.Listener) (map[string]string, error) {
 	labels := map[string]string{}
 
 	if listener.Spec.ExtraPodMatchLabels != nil {
@@ -173,9 +172,9 @@ func (r *ListenerReconciler) getServiceMatchLabeles(listener *znclistenersv1alph
 func (r *ListenerReconciler) buildListenerStatus(
 	ctx context.Context,
 	client client.Client,
-	listener *znclistenersv1alpha1.Listener,
-) (*znclistenersv1alpha1.ListenerStatus, error) {
-	status := &znclistenersv1alpha1.ListenerStatus{
+	listener *operatorlistenersv1alpha1.Listener,
+) (*operatorlistenersv1alpha1.ListenerStatus, error) {
+	status := &operatorlistenersv1alpha1.ListenerStatus{
 		ServiceName: listener.Name,
 	}
 	svcReconciler := &ServiceReconciler{
@@ -196,7 +195,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 
 	// update service NodePorts to status when service type is NodePort
 	switch serviceType {
-	case listenersv1alpha1.ServiceTypeNodePort:
+	case corev1.ServiceTypeNodePort:
 		ports, err := svcReconciler.getNodePorts(service)
 		if err != nil {
 			return nil, err
@@ -208,31 +207,31 @@ func (r *ListenerReconciler) buildListenerStatus(
 		}
 
 		for _, address := range addresses {
-			status.IngressAddresses = append(status.IngressAddresses, znclistenersv1alpha1.IngressAddressSpec{
+			status.IngressAddresses = append(status.IngressAddresses, operatorlistenersv1alpha1.IngressAddressSpec{
 				Address:     address.Address,
 				AddressType: address.AddressType,
 				Ports:       ports,
 			})
 		}
 		status.NodePorts = ports
-	case listenersv1alpha1.ServiceTypeLoadBalancer:
+	case corev1.ServiceTypeLoadBalancer:
 		address, err := svcReconciler.getLbIngressAddress(service)
 		if err != nil {
 			return nil, err
 		}
-		status.IngressAddresses = append(status.IngressAddresses, znclistenersv1alpha1.IngressAddressSpec{
+		status.IngressAddresses = append(status.IngressAddresses, operatorlistenersv1alpha1.IngressAddressSpec{
 			Address:     address,
-			AddressType: znclistenersv1alpha1.AddressTypeIP,
+			AddressType: operatorlistenersv1alpha1.AddressTypeIP,
 			Ports:       servicePorts,
 		})
-	case listenersv1alpha1.ServiceTypeClusterIP:
+	case corev1.ServiceTypeClusterIP:
 		address, err := svcReconciler.getClusterIp(service)
 		if err != nil {
 			return nil, err
 		}
-		status.IngressAddresses = append(status.IngressAddresses, znclistenersv1alpha1.IngressAddressSpec{
+		status.IngressAddresses = append(status.IngressAddresses, operatorlistenersv1alpha1.IngressAddressSpec{
 			Address:     address,
-			AddressType: znclistenersv1alpha1.AddressTypeIP,
+			AddressType: operatorlistenersv1alpha1.AddressTypeIP,
 			Ports:       servicePorts,
 		})
 	default:
@@ -243,7 +242,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 	return status, nil
 }
 
-func (r *ListenerReconciler) updateListener(ctx context.Context, listener *znclistenersv1alpha1.Listener) (ctrl.Result, error) {
+func (r *ListenerReconciler) updateListener(ctx context.Context, listener *operatorlistenersv1alpha1.Listener) (ctrl.Result, error) {
 	err := r.Status().Update(ctx, listener)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -256,7 +255,7 @@ func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	mapFunc := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
 		endpoints := o.(*corev1.Endpoints)
-		list := &znclistenersv1alpha1.ListenerList{}
+		list := &operatorlistenersv1alpha1.ListenerList{}
 		if err := r.List(ctx, list, client.InNamespace(endpoints.Namespace)); err != nil {
 			logger.Error(err, "Failed to list listeners")
 			return nil
@@ -277,7 +276,7 @@ func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&znclistenersv1alpha1.Listener{}).
+		For(&operatorlistenersv1alpha1.Listener{}).
 		Watches(&corev1.Endpoints{}, mapFunc).
 		Complete(r)
 }

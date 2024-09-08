@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"github.com/zncdatadev/operator-go/pkg/constants"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,7 +22,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	"github.com/zncdatadev/listener-operator/pkg/util"
 )
 
@@ -126,7 +125,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 		return nil, status.Error(codes.InvalidArgument, "listener class name missing in request")
 	}
 
-	listenerClass := &listenersv1alpha1.ListenerClass{}
+	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
 
 	// get the listener class
 	if err := n.client.Get(ctx, client.ObjectKey{
@@ -254,7 +253,7 @@ func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath stri
 func (n *NodeServer) patchPodLabelWithListener(
 	ctx context.Context,
 	pod *corev1.Pod,
-	listener *znclistenersv1alpha1.Listener,
+	listener *operatorlistenersv1alpha1.Listener,
 ) error {
 	// patch pod label with listener name
 	copyedPod := pod.DeepCopy()
@@ -277,7 +276,7 @@ func (n *NodeServer) patchPodLabelWithListener(
 // an error will raise. NodeController will retry to get address from listener status.
 func (n *NodeServer) getAddresses(
 	ctx context.Context,
-	listener *znclistenersv1alpha1.Listener,
+	listener *operatorlistenersv1alpha1.Listener,
 	pod *corev1.Pod,
 ) ([]util.IngressAddress, error) {
 	if len(listener.Status.NodePorts) != 0 {
@@ -340,12 +339,12 @@ func (n *NodeServer) getPod(ctx context.Context, podName, podNamespace string) (
 	return pod, nil
 }
 
-func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]znclistenersv1alpha1.PortSpec, error) {
-	ports := []znclistenersv1alpha1.PortSpec{}
+func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]operatorlistenersv1alpha1.PortSpec, error) {
+	ports := []operatorlistenersv1alpha1.PortSpec{}
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
 			if port.Name != "" {
-				ports = append(ports, znclistenersv1alpha1.PortSpec{
+				ports = append(ports, operatorlistenersv1alpha1.PortSpec{
 					Name:     port.Name,
 					Protocol: port.Protocol,
 					Port:     port.ContainerPort,
@@ -393,10 +392,10 @@ func (n *NodeServer) getPV(ctx context.Context, pvName string) (*corev1.Persiste
 // listener is createOrUpdate with listener class,
 // listener status my not updated, then you will get error.
 // Do not warry, we can get listener status in the next time.
-func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext volumeContext) (*znclistenersv1alpha1.Listener, error) {
+func (n *NodeServer) getListener(ctx context.Context, pvName string, volumeContext volumeContext) (*operatorlistenersv1alpha1.Listener, error) {
 
 	if volumeContext.ListenerName != nil {
-		listener := &znclistenersv1alpha1.Listener{}
+		listener := &operatorlistenersv1alpha1.Listener{}
 		if err := n.client.Get(ctx, client.ObjectKey{
 			Name:      *volumeContext.ListenerName,
 			Namespace: *volumeContext.PodNamespace,
@@ -451,8 +450,8 @@ func (n *NodeServer) createOrUpdateListener(
 	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
 	labels map[string]string,
-	ports []znclistenersv1alpha1.PortSpec,
-) (*znclistenersv1alpha1.Listener, error) {
+	ports []operatorlistenersv1alpha1.PortSpec,
+) (*operatorlistenersv1alpha1.Listener, error) {
 
 	listener, err := n.buildListener(
 		*volumeContext.Pod,
@@ -506,11 +505,11 @@ func (n *NodeServer) buildListener(
 	owner client.Object,
 	labales map[string]string,
 	listenerClassName string,
-	ports []znclistenersv1alpha1.PortSpec,
-) (*znclistenersv1alpha1.Listener, error) {
+	ports []operatorlistenersv1alpha1.PortSpec,
+) (*operatorlistenersv1alpha1.Listener, error) {
 
-	obj := &znclistenersv1alpha1.Listener{
-		Spec: znclistenersv1alpha1.ListenerSpec{
+	obj := &operatorlistenersv1alpha1.Listener{
+		Spec: operatorlistenersv1alpha1.ListenerSpec{
 			ClassName: listenerClassName,
 			Ports:     ports,
 		},

@@ -6,12 +6,12 @@ import (
 	"regexp"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	listenersv1alph1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	"github.com/zncdatadev/operator-go/pkg/constants"
 )
 
@@ -123,16 +123,16 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}, nil
 }
 
-func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *listenersv1alph1.ListenerClass) ([]*csi.Topology, error) {
-	if listenerClass.Spec.ServiceType == listenersv1alph1.ServiceTypeNodePort {
+func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *operatorlistenersv1alpha1.ListenerClass) ([]*csi.Topology, error) {
+	if *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
 		return request.GetAccessibilityRequirements().GetRequisite(), nil
 	} else {
 		return []*csi.Topology{}, nil
 	}
 }
 
-func (c *ControllerServer) getListenerClass(name string, namespace string) (*listenersv1alph1.ListenerClass, error) {
-	listenerClass := &listenersv1alph1.ListenerClass{}
+func (c *ControllerServer) getListenerClass(name string, namespace string) (*operatorlistenersv1alpha1.ListenerClass, error) {
+	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
 	err := c.client.Get(context.Background(), client.ObjectKey{
 		Name:      name,
 		Namespace: namespace,
