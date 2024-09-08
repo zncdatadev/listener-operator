@@ -36,14 +36,14 @@ spec:
     - -c
     - |
       while true; do
-        if [ -d "/opt/zncdata/default-address" ]; then
+        if [ -d "/opt/listener/default-address" ]; then
           break
         fi
         echo "waiting for listener address to be created"
         sleep 10
       done
-      ADDRESS=$(cat /opt/zncdata/default-address/address)
-      PORT=$(cat /opt/zncdata/default-address/ports/http)
+      ADDRESS=$(cat /opt/listener/default-address/address)
+      PORT=$(cat /opt/listener/default-address/ports/http)
       echo "default listener address: $ADDRESS:$PORT"
 
       kubectl apply -f - <<EOF
@@ -64,7 +64,7 @@ spec:
       echo "created configmap"
     volumeMounts:
     - name: listener
-      mountPath: /opt/zncdata/
+      mountPath: /opt/listener/
   containers:
   - name: main
     image: caddy:2
@@ -83,7 +83,7 @@ spec:
       name: http
     volumeMounts:
     - name: listener
-      mountPath: /opt/zncdata/
+      mountPath: /opt/listener/
     readinessProbe:
       httpGet:
         port: http
