@@ -21,8 +21,6 @@ spec:
           - kind: ServiceAccount
             name: test
             namespace: ($namespace) # doymaically replace the namespace when the test is run
-    - apply:
-        file: ../commons/listenercsi.yaml
     - assert:
         file: ../commons/listenercsi-assert.yaml
     - apply:
