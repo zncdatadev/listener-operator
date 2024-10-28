@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.34.2
 	github.com/zncdatadev/operator-go v0.10.0
 	google.golang.org/grpc v1.67.1
-	k8s.io/apimachinery v0.31.1
+	k8s.io/apimachinery v0.31.2
 	k8s.io/client-go v0.31.1
 	sigs.k8s.io/controller-runtime v0.19.1
 	sigs.k8s.io/yaml v1.4.0
