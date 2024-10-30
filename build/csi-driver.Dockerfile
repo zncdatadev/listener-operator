@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.23 AS builder
+FROM quay.io/zncdatadev/go-devel:1.23.2-kubedoop0.0.0-dev AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG LDFLAGS
@@ -25,9 +25,7 @@ COPY pkg/ pkg/
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags "${LDFLAGS}" -o csi-driver cmd/csi_driver/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM alpine:3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 WORKDIR /
 COPY --from=builder /workspace/csi-driver .
 USER 65532:65532
