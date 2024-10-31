@@ -26,6 +26,10 @@ COPY pkg/ pkg/
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags "${LDFLAGS}" -o csi-driver cmd/csi_driver/main.go
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+RUN microdnf -y update \
+    && microdnf install -y util-linux \
+    && microdnf clean all \
+    && rm -rf /var/cache/yum
 WORKDIR /
 COPY --from=builder /workspace/csi-driver .
 USER 65532:65532
