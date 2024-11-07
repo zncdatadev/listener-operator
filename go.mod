@@ -8,7 +8,7 @@ require (
 	github.com/kubernetes-csi/csi-lib-utils v0.19.0
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
-	github.com/zncdatadev/operator-go v0.10.0
+	github.com/zncdatadev/operator-go v0.9.2
 	google.golang.org/grpc v1.67.1
 	k8s.io/apimachinery v0.31.2
 	k8s.io/client-go v0.31.2
