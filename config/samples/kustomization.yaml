@@ -1,6 +1,6 @@
 ## Append samples of your project ##
 resources:
 - listeners_v1alpha1_listenerclass.yaml
-- listeners_v1alpha1_listener.yaml
-- listeners_v1alpha1_listenercsi.yaml
+# - listeners_v1alpha1_listener.yaml
+# - listeners_v1alpha1_listenercsi.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

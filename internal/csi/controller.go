@@ -107,11 +107,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 		return nil, status.Errorf(codes.NotFound, "ListenerClass: %q. Detail: %v", listenerClassName, err)
 	}
 
-	accessibleTopology, err := c.getAccessibleTopology(request, listenerClass)
-
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "Get accessible topology error: %v", err)
-	}
+	accessibleTopology := c.getAccessibleTopology(request, listenerClass)
 
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
@@ -123,11 +119,11 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}, nil
 }
 
-func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *operatorlistenersv1alpha1.ListenerClass) ([]*csi.Topology, error) {
+func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *operatorlistenersv1alpha1.ListenerClass) []*csi.Topology {
 	if *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
-		return request.GetAccessibilityRequirements().GetRequisite(), nil
+		return request.GetAccessibilityRequirements().GetRequisite()
 	} else {
-		return []*csi.Topology{}, nil
+		return []*csi.Topology{}
 	}
 }
 
@@ -257,8 +253,7 @@ func (c *ControllerServer) ValidateVolumeCapabilities(ctx context.Context, reque
 }
 
 func (c *ControllerServer) ListVolumes(ctx context.Context, request *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	// impl list volumes
-	var entries []*csi.ListVolumesResponse_Entry
+	entries := make([]*csi.ListVolumesResponse_Entry, 0, len(c.volumes))
 	for volumeID, size := range c.volumes {
 		entries = append(entries, &csi.ListVolumesResponse_Entry{
 			Volume: &csi.Volume{

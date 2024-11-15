@@ -132,8 +132,8 @@ type ListenerCSIStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // ListenerCSI is the Schema for the listenercsis API
 type ListenerCSI struct {
@@ -144,15 +144,11 @@ type ListenerCSI struct {
 	Status ListenerCSIStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ListenerCSIList contains a list of ListenerCSI
 type ListenerCSIList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ListenerCSI `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&ListenerCSI{}, &ListenerCSIList{})
 }
