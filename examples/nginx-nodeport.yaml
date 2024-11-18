@@ -1,0 +1,69 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: exposed-nginx-nodeport
+spec:
+  replicas: 1
+  serviceName: ""
+  selector:
+    matchLabels:
+      app: exposed-nginx-nodeport
+  template:
+    metadata:
+      labels:
+        app: exposed-nginx-nodeport
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - name: http
+          containerPort: 80
+        volumeMounts:
+        - name: listener
+          mountPath: /usr/share/nginx/html/listener
+        - name: tls
+          mountPath: /tls
+        - name: listener2
+          mountPath: /usr/share/nginx/html/listener2
+      volumes:
+      - name: tls
+        ephemeral:
+          volumeClaimTemplate:
+            metadata:
+              annotations:
+                secrets.kubedoop.dev/class: tls
+                secrets.kubedoop.dev/scope: listener-volume=listener,listener-volume=listener2
+            spec:
+              storageClassName: secrets.kubedoop.dev
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: "1"
+      - name: listener2
+        ephemeral:
+          volumeClaimTemplate:
+            metadata:
+              annotations:
+                listeners.kubedoop.dev/listener-class: external-unstable
+            spec:
+              accessModes:
+              - ReadWriteMany
+              storageClassName: listeners.kubedoop.dev
+              resources:
+                requests:
+                  storage: 1
+  volumeClaimTemplates:
+  - metadata:
+      name: listener
+      annotations:
+        listeners.kubedoop.dev/listener-class: external-unstable
+    spec:
+      accessModes:
+      - ReadWriteMany
+      storageClassName: listeners.kubedoop.dev
+      resources:
+        requests:
+          storage: 1
