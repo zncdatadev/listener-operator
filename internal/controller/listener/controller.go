@@ -42,13 +42,13 @@ type ListenerReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listeners,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listeners/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listeners/finalizers,verbs=update
-//+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch
-//+kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=endpoints,verbs=get;list;watch
+// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listeners,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listeners/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listeners/finalizers,verbs=update
+// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch
+// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=endpoints,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -82,11 +82,7 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	logger.Info("Service type", "type", serviceType, "listener", instance.Name, "namespace", instance.Namespace)
 
-	labels, err := r.getServiceMatchLabeles(instance)
-	if err != nil {
-		logger.Error(err, "Failed to get service match labels")
-		return ctrl.Result{}, err
-	}
+	labels := r.getServiceMatchLabeles(instance)
 
 	svcReconciler := &ServiceReconciler{
 		client: r.Client,
@@ -96,7 +92,7 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if result, err := svcReconciler.createService(
 		ctx,
 		labels,
-		corev1.ServiceType(*serviceType),
+		*serviceType, // Remove unnecessary conversion
 	); err != nil {
 		logger.Error(err, "Failed to create service")
 		return ctrl.Result{}, err
@@ -112,11 +108,9 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	instance.Status = *status
 
-	if result, err := r.updateListener(ctx, instance); err != nil {
+	if err := r.updateListener(ctx, instance); err != nil {
 		logger.Error(err, "Failed to update listener")
 		return ctrl.Result{}, err
-	} else if result.Requeue {
-		return result, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -155,7 +149,7 @@ func (r *ListenerReconciler) getServiceTypeFromListenerClass(
 	}
 }
 
-func (r *ListenerReconciler) getServiceMatchLabeles(listener *operatorlistenersv1alpha1.Listener) (map[string]string, error) {
+func (r *ListenerReconciler) getServiceMatchLabeles(listener *operatorlistenersv1alpha1.Listener) map[string]string {
 	labels := map[string]string{}
 
 	if listener.Spec.ExtraPodMatchLabels != nil {
@@ -166,7 +160,7 @@ func (r *ListenerReconciler) getServiceMatchLabeles(listener *operatorlistenersv
 
 	maps.Copy(labels, util.ListenerLabelsForPod(listener.Spec.ClassName, listener.Name))
 
-	return labels, nil
+	return labels
 }
 
 func (r *ListenerReconciler) buildListenerStatus(
@@ -188,10 +182,7 @@ func (r *ListenerReconciler) buildListenerStatus(
 	}
 
 	serviceType := svcReconciler.getServiceType(service)
-	servicePorts, err := svcReconciler.getPorts(service)
-	if err != nil {
-		return nil, err
-	}
+	servicePorts := svcReconciler.getPorts(service)
 
 	// update service NodePorts to status when service type is NodePort
 	switch serviceType {
@@ -242,12 +233,8 @@ func (r *ListenerReconciler) buildListenerStatus(
 	return status, nil
 }
 
-func (r *ListenerReconciler) updateListener(ctx context.Context, listener *operatorlistenersv1alpha1.Listener) (ctrl.Result, error) {
-	err := r.Status().Update(ctx, listener)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
+func (r *ListenerReconciler) updateListener(ctx context.Context, listener *operatorlistenersv1alpha1.Listener) error {
+	return r.Status().Update(ctx, listener)
 }
 
 // SetupWithManager sets up the controller with the Manager.

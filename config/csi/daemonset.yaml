@@ -1,0 +1,149 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: listener-operator
+    app.kubernetes.io/instance: controller-manager
+    app.kubernetes.io/component: csi-driver
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: listener-operator
+      app.kubernetes.io/instance: csi-driver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/instance: csi-driver
+    spec:
+      serviceAccountName: controller-manager
+      securityContext:
+        {}
+      containers:
+        - name: csi-driver
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            seLinuxOptions:
+              type: spc_t
+          image: "csi-driver:latest"
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          args:
+            - -endpoint=$(ADDRESS)
+            - -nodeid=$(NODE_NAME)
+          env:
+            - name: ADDRESS
+              value: unix:///csi/csi.sock
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: pluging-dir
+              mountPath: /csi
+            - name: mountpoint-dir
+              mountPath: /var/lib/kubelet/pods
+              mountPropagation: Bidirectional
+        - name: node-driver-registrar
+          image: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.12.0"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            seLinuxOptions:
+              type: spc_t
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          env:
+            - name: ADDRESS
+              value: unix:///csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/listeners.zncdata.dev/csi.sock
+          args:
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+          volumeMounts:
+            - name: registration-dir
+              mountPath: /registration
+            - name: pluging-dir
+              mountPath: /csi
+              mountPropagation: Bidirectional
+        - name: csi-provisioner
+          image: registry.k8s.io/sig-storage/csi-provisioner:v5.1.0
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            seLinuxOptions:
+              type: spc_t
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          args:
+          - --csi-address=$(ADDRESS)
+          - --feature-gates=Topology=true
+          - --extra-create-metadata
+          env:
+            - name: ADDRESS
+              value: unix:///csi/csi.sock
+          volumeMounts:
+            - name: pluging-dir
+              mountPath: /csi
+        - name: liveness-probe
+          image: registry.k8s.io/sig-storage/livenessprobe:v2.14.0
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            seLinuxOptions:
+              type: spc_t
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          env:
+            - name: ADDRESS
+              value: unix:///csi/csi.sock
+          args:
+            - --csi-address=$(ADDRESS)
+            - --health-port=9808
+          volumeMounts:
+            - name: pluging-dir
+              mountPath: /csi
+      volumes:
+        - name: registration-dir
+          hostPath:
+            # node-driver-registrar appends a driver-unique filename to this path to avoid conflicts
+            path: /var/lib/kubelet/plugins_registry
+            type: DirectoryOrCreate
+        - name: pluging-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/listeners.zncdata.dev/
+            type: DirectoryOrCreate
+        - name: mountpoint-dir
+          hostPath:
+            path: /var/lib/kubelet/pods/
+            type: DirectoryOrCreate

@@ -2,6 +2,6 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: listener-operator-daemonset
-  namespace: kubedoop-operators
+  namespace: listener-operator-system
 status:
   (numberReady >= `1`): true

@@ -388,7 +388,7 @@ func (n *NodeServer) getPV(ctx context.Context, pvName string) (*corev1.Persiste
 // getListener get listener if listener name already exist volume context,
 // else create or update by listener class and pod info.
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NOTE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// If use listener status immediately after tihs method called, when the
+// If use listener status immediately after this method called, when the
 // listener is createOrUpdate with listener class,
 // listener status my not updated, then you will get error.
 // Do not warry, we can get listener status in the next time.
@@ -653,7 +653,8 @@ func (n *NodeServer) NodeGetCapabilities(ctx context.Context, request *csi.NodeG
 		}
 	}
 
-	var capabilities []*csi.NodeServiceCapability
+	// var capabilities []*csi.NodeServiceCapability
+	capabilities := make([]*csi.NodeServiceCapability, 0)
 
 	for _, capability := range []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,

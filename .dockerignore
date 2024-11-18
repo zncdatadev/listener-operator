@@ -2,8 +2,4 @@
 # Ignore build and test binaries.
 bin/
 
-bundle.Dockerfile
-
 kind-kubeconfig*
-
-catalog.Dockerfile

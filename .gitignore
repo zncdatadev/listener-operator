@@ -27,11 +27,6 @@ Dockerfile.cross
 
 **/__debug_*
 
-bundle*
-
 kind-kubeconfig*
-
-catalog.Dockerfile
-catalog
 
 kind-config-local.yaml

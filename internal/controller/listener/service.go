@@ -120,7 +120,7 @@ func (s *ServiceReconciler) getNodePorts(service *corev1.Service) (map[string]in
 	return ports, nil
 }
 
-func (s *ServiceReconciler) getPorts(service *corev1.Service) (map[string]int32, error) {
+func (s *ServiceReconciler) getPorts(service *corev1.Service) map[string]int32 {
 	ports := map[string]int32{}
 	for _, port := range service.Spec.Ports {
 		if port.Name == "" {
@@ -130,8 +130,7 @@ func (s *ServiceReconciler) getPorts(service *corev1.Service) (map[string]int32,
 		ports[port.Name] = port.Port
 	}
 	logger.Info("get ports", "ports", ports, "service", service.Name, "namespace", service.Namespace)
-	return ports, nil
-
+	return ports
 }
 
 func (s *ServiceReconciler) getLbIngressAddress(
@@ -157,7 +156,7 @@ func (s *ServiceReconciler) getClusterIp(service *corev1.Service) (string, error
 }
 
 func (s *ServiceReconciler) getServiceType(service *corev1.Service) corev1.ServiceType {
-	return corev1.ServiceType(service.Spec.Type)
+	return service.Spec.Type
 }
 
 func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.AddressInfo, error) {
