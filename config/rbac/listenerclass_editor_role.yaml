@@ -12,7 +12,7 @@ metadata:
   name: listenerclass-editor-role
 rules:
 - apiGroups:
-  - listeners.zncdata.dev
+  - listeners.kubedoop.dev
   resources:
   - listenerclasses
   verbs:
@@ -24,7 +24,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - listeners.zncdata.dev
+  - listeners.kubedoop.dev
   resources:
   - listenerclasses/status
   verbs:

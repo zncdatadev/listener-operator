@@ -2,7 +2,7 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: zncdata.dev
+domain: kubedoop.dev
 layout:
 - go.kubebuilder.io/v4
 projectName: listener-operator
@@ -12,7 +12,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: zncdata.dev
+  domain: kubedoop.dev
   group: listeners
   kind: ListenerClass
   path: github.com/zncdatadev/listener-operator/api/v1alpha1
@@ -21,7 +21,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: zncdata.dev
+  domain: kubedoop.dev
   group: listeners
   kind: Listener
   path: github.com/zncdatadev/listener-operator/api/v1alpha1
@@ -30,7 +30,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: zncdata.dev
+  domain: kubedoop.dev
   group: listeners
   kind: ListenerCSI
   path: github.com/zncdatadev/listener-operator/api/v1alpha1

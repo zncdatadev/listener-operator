@@ -2,9 +2,9 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/listeners.zncdata.dev_listenerclasses.yaml
-- bases/listeners.zncdata.dev_listeners.yaml
-- bases/listeners.zncdata.dev_listenercsis.yaml
+- bases/listeners.kubedoop.dev_listenerclasses.yaml
+- bases/listeners.kubedoop.dev_listeners.yaml
+- bases/listeners.kubedoop.dev_listenercsis.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

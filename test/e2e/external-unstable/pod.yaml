@@ -1,13 +1,13 @@
 # Description: Example Test listeners of the external-unstable type.
 # The pod specifies the use of a external-unstable type listener through a temporary volume.
 # The listener-operator will create a service resource object of type clusterIP for this pod and bind it to the pod.
-# When providing services externally, you only need to access the service using its address and port. 
+# When providing services externally, you only need to access the service using its address and port.
 # You don't need to worry about the pod's address and port.
 #
-# In this test, to facilitate other services accessing the access information provided by the listener, 
+# In this test, to facilitate other services accessing the access information provided by the listener,
 # we write the allocated address and port information into a ConfigMap object using an init container.
 # Other services can retrieve the access information from the ConfigMap object.
-# Note: This is just a test case. In a real application, you should use Listener.Status.IngressAddresses 
+# Note: This is just a test case. In a real application, you should use Listener.Status.IngressAddresses
 # in the operator logic to create ConfigMap objects for other services.
 
 ---
@@ -92,7 +92,7 @@ spec:
       failureThreshold: 3
     livenessProbe:
       httpGet:
-        port: http 
+        port: http
       initialDelaySeconds: 5
       periodSeconds: 2
       failureThreshold: 3
@@ -102,10 +102,10 @@ spec:
       volumeClaimTemplate:
         metadata:
           annotations:
-            listeners.zncdata.dev/class: external-unstable
+            listeners.kubedoop.dev/class: external-unstable
         spec:
           accessModes: ["ReadWriteOnce"]
-          storageClassName: listeners.zncdata.dev
+          storageClassName: listeners.kubedoop.dev
           resources:
             requests:
               storage: 1Mi

@@ -36,12 +36,12 @@ func (r *StorageClass) build() *storage.StorageClass {
 
 	obj := &storage.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "listeners.zncdata.dev",
+			Name: "listeners.kubedoop.dev",
 			Labels: map[string]string{
 				"app.kubernetes.io/managed-by": "listener-operator",
 			},
 		},
-		Provisioner: "listeners.zncdata.dev",
+		Provisioner: "listeners.kubedoop.dev",
 	}
 
 	return obj

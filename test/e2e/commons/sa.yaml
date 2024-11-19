@@ -11,6 +11,6 @@ rules:
 - apiGroups: [""]
   resources: ["configmaps"]
   verbs: ["create", "get", "list", "watch"]
-- apiGroups: ["listeners.zncdata.dev"]
+- apiGroups: ["listeners.kubedoop.dev"]
   resources: ["listeners"]
   verbs: ["create", "get", "list", "watch"]

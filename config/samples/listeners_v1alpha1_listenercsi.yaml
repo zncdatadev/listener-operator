@@ -1,4 +1,4 @@
-apiVersion: listeners.zncdata.dev/v1alpha1
+apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: ListenerCSI
 metadata:
   labels:
