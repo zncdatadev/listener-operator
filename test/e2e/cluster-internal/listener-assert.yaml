@@ -1,5 +1,5 @@
 ################### example #################
-# apiVersion: listeners.zncdata.dev/v1alpha1
+# apiVersion: listeners.kubedoop.dev/v1alpha1
 # kind: Listener
 # metadata:
 #   creationTimestamp: "2024-07-22T10:34:54Z"
@@ -31,7 +31,7 @@
 ################### end example #################
 
 ---
-apiVersion: listeners.zncdata.dev/v1alpha1
+apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: Listener
 metadata:
   name: caddy

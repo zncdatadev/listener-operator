@@ -36,8 +36,8 @@ type volumeContext struct {
 	Provisioner        *string `json:"storage.kubernetes.io/csiProvisionerIdentity"`
 
 	// User defined annotations for PVC
-	ListenerClassName *string `json:"listeners.zncdata.dev/class"` // required
-	ListenerName      *string `json:"listeners.zncdata.dev/name"`  // optional
+	ListenerClassName *string `json:"listeners.kubedoop.dev/class"` // required
+	ListenerName      *string `json:"listeners.kubedoop.dev/name"`  // optional
 }
 
 func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
@@ -117,8 +117,8 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	// In this csi, we can get extra PVC annotations from volume context,
 	// because we delivery it from controller to node already.
 	// Our defined annotations for PVC:
-	//   - listeners.zncdata.dev/class: <class-name>	# required
-	//   - listeners.zncdata.dev/name: <name>	# optional
+	//   - listeners.kubedoop.dev/class: <class-name>	# required
+	//   - listeners.kubedoop.dev/name: <name>	# optional
 	volumeContext := newVolumeContextFromMap(request.GetVolumeContext())
 
 	if volumeContext.ListenerClassName == nil {

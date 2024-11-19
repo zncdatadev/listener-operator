@@ -156,12 +156,12 @@ func (c *ControllerServer) getPvc(name, namespace string) (*corev1.PersistentVol
 // getVolumeContext gets volume ctx from PVC annotations
 
 //   - get PVC by k8s client with PVC name and namespace, then get annotations from PVC.
-//   - get 'listeners.zncdata.dev/class' from PVC annotations, and check.
+//   - get 'listeners.kubedoop.dev/class' from PVC annotations, and check.
 //   - return annotations.
 //
 // You can use custom annotations:
-//   - listeners.zncdata.dev/class: <class-name>	# required
-//   - listeners.zncdata.dev/name: <name>	# optional
+//   - listeners.kubedoop.dev/class: <class-name>	# required
+//   - listeners.kubedoop.dev/name: <name>	# optional
 func (c *ControllerServer) getVolumeContext(params *createVolumeRequestParams) (map[string]string, error) {
 
 	pvc, err := c.getPvc(params.PVCName, params.pvcNamespace)

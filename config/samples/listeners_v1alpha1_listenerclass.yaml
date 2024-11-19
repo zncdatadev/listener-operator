@@ -1,4 +1,4 @@
-apiVersion: listeners.zncdata.dev/v1alpha1
+apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: ListenerClass
 metadata:
   labels:
@@ -12,7 +12,7 @@ spec:
   serviceType: ClusterIP
 ---
 # Source: listener-operator/templates/listener-classes.yaml
-apiVersion: listeners.zncdata.dev/v1alpha1
+apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: ListenerClass
 metadata:
   name: cluster-internal
@@ -20,7 +20,7 @@ spec:
   serviceType: ClusterIP
 ---
 # Source: listener-operator/templates/listener-classes.yaml
-apiVersion: listeners.zncdata.dev/v1alpha1
+apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: ListenerClass
 metadata:
   name: external-unstable
@@ -28,7 +28,7 @@ spec:
   serviceType: NodePort
 ---
 # Source: listener-operator/templates/listener-classes.yaml
-apiVersion: listeners.zncdata.dev/v1alpha1
+apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: ListenerClass
 metadata:
   name: external-stable

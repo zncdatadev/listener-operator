@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DefaultDriverName = "listeners.zncdata.dev"
+	DefaultDriverName = "listeners.kubedoop.dev"
 )
 
 var (

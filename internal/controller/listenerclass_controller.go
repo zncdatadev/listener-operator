@@ -32,9 +32,9 @@ type ListenerClassReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=listeners.zncdata.dev,resources=listenerclasses/finalizers,verbs=update
+// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

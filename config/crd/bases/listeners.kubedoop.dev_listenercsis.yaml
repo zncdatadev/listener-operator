@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.5
-  name: listenercsis.listeners.zncdata.dev
+  name: listenercsis.listeners.kubedoop.dev
 spec:
-  group: listeners.zncdata.dev
+  group: listeners.kubedoop.dev
   names:
     kind: ListenerCSI
     listKind: ListenerCSIList
