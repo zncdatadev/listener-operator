@@ -51,7 +51,6 @@ rules:
   - listeners.kubedoop.dev
   resources:
   - listenerclasses
-  - listenercsis
   - listeners
   verbs:
   - create
@@ -65,7 +64,6 @@ rules:
   - listeners.kubedoop.dev
   resources:
   - listenerclasses/finalizers
-  - listenercsis/finalizers
   - listeners/finalizers
   verbs:
   - update
@@ -73,7 +71,6 @@ rules:
   - listeners.kubedoop.dev
   resources:
   - listenerclasses/status
-  - listenercsis/status
   - listeners/status
   verbs:
   - get

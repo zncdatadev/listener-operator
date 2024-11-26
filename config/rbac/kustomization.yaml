@@ -24,5 +24,3 @@ resources:
 # if you do not want those helpers be installed with your Project.
 - listenerclass_editor_role.yaml
 - listenerclass_viewer_role.yaml
-- listenercsi_editor_role.yaml
-- listenercsi_viewer_role.yaml
