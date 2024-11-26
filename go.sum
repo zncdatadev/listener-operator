@@ -132,6 +132,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/zncdatadev/operator-go v0.11.3-0.20241119024050-350d91b7a332 h1:KzD7yCE09cm7caFGk6/LWIJQ5rKNFWTxB7zESmmALpw=
 github.com/zncdatadev/operator-go v0.11.3-0.20241119024050-350d91b7a332/go.mod h1:9QGIaH5gTDgpv0kftcGkBGqCIj7cboC5ZMES9fZy4XI=
+github.com/zncdatadev/operator-go v0.12.0 h1:vsqX2m5l4DM/65lhE4F0V8CSJzGOjrQjAtBod364nbQ=
+github.com/zncdatadev/operator-go v0.12.0/go.mod h1:MYXjJAuUC61RJqmFl1+k8gVDNTx38RvZU2F02IoKTYQ=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 h1:4K4tsIXefpVJtvA/8srF4V4y0akAoPHkIslgAkjixJA=
 go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0/go.mod h1:jjdQuTGVsXV4vSs+CJ2qYDeDPf9yIJV23qlIzBm73Vg=
 go.opentelemetry.io/otel v1.28.0 h1:/SqNcYk+idO0CxKEUOtKQClMK/MimZihKYMruSMViUo=

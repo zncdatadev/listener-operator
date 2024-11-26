@@ -45,7 +45,7 @@ patches:
 replacements:
 - source:
     kind: CustomResourceDefinition
-    name: listenercsis.listeners.kubedoop.dev
+    name: listenerclasses.listeners.kubedoop.dev
     fieldPath: spec.group
   targets:
     - select:

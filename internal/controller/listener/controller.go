@@ -49,12 +49,8 @@ type ListenerReconciler struct {
 // +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=endpoints,verbs=get;list;watch
-// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenercsis,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenercsis/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenercsis/finalizers,verbs=update
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
-// +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch
