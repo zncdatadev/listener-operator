@@ -10,8 +10,8 @@ require (
 	github.com/onsi/gomega v1.35.1
 	github.com/zncdatadev/operator-go v0.11.3-0.20241119024050-350d91b7a332
 	google.golang.org/grpc v1.68.0
-	k8s.io/apimachinery v0.31.2
-	k8s.io/client-go v0.31.2
+	k8s.io/apimachinery v0.31.3
+	k8s.io/client-go v0.31.3
 	sigs.k8s.io/controller-runtime v0.19.2
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -98,7 +98,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.31.2
+	k8s.io/api v0.31.3
 	k8s.io/apiextensions-apiserver v0.31.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240521025948-451ce29f5b89 // indirect
