@@ -29,7 +29,9 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
-
+      - name: Build and push csi driver
+        run: |
+          make csi-docker-buildx
       - name: Build and push operator
         run: |
           make docker-buildx
