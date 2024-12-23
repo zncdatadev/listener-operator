@@ -40,14 +40,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - apps
-  resources:
-  - daemonsets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - listeners.kubedoop.dev
   resources:
   - listenerclasses
