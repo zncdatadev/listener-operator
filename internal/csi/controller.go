@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -76,7 +76,8 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	c.volumes[request.Name] = requiredCap
 
 	if request.Parameters["listenerFinalizer"] == "true" {
-		log.V(1).Info("Finalizer is true")
+		log.V(1).Info("volume is listener finalizer", "volume", request.Name)
+
 	}
 
 	// requests.parameters is StorageClass.Parameters, which is set by user when creating PVC.
@@ -101,14 +102,13 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener class name error: %v", err)
 	}
 
-	listenerClass, err := c.getListenerClass(listenerClassName, params.pvcNamespace)
-
+	listenerClass, err := c.getListenerClass(ctx, listenerClassName, params.pvcNamespace)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "ListenerClass: %q. Detail: %v", listenerClassName, err)
 	}
 
 	accessibleTopology := c.getAccessibleTopology(request, listenerClass)
-
+	log.Info("CreateVolume", "volume", request.Name, "listenerClass", listenerClassName, "accessibleTopology", accessibleTopology)
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			VolumeId:           request.GetName(),
@@ -119,7 +119,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}, nil
 }
 
-func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *operatorlistenersv1alpha1.ListenerClass) []*csi.Topology {
+func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *listeners.ListenerClass) []*csi.Topology {
 	if *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
 		return request.GetAccessibilityRequirements().GetRequisite()
 	} else {
@@ -127,9 +127,9 @@ func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeReques
 	}
 }
 
-func (c *ControllerServer) getListenerClass(name string, namespace string) (*operatorlistenersv1alpha1.ListenerClass, error) {
-	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
-	err := c.client.Get(context.Background(), client.ObjectKey{
+func (c *ControllerServer) getListenerClass(ctx context.Context, name string, namespace string) (*listeners.ListenerClass, error) {
+	listenerClass := &listeners.ListenerClass{}
+	err := c.client.Get(ctx, client.ObjectKey{
 		Name:      name,
 		Namespace: namespace,
 	}, listenerClass)
@@ -170,7 +170,7 @@ func (c *ControllerServer) getVolumeContext(params *createVolumeRequestParams) (
 	}
 
 	annotations := pvc.GetAnnotations()
-	log.V(5).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
+	log.V(1).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
 
 	_, classNameExists := annotations[constants.AnnotationListenersClass]
 	if !classNameExists {
@@ -193,7 +193,7 @@ func (c *ControllerServer) DeleteVolume(ctx context.Context, request *csi.Delete
 	}
 
 	if !dynamic {
-		log.V(5).Info("Volume is not dynamic, skip delete volume")
+		log.V(1).Info("Volume is not dynamic, skip delete volume")
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 

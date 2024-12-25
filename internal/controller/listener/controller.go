@@ -18,12 +18,14 @@ package listener
 
 import (
 	"context"
-	"errors"
-	"maps"
+	"fmt"
 
-	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	"github.com/zncdatadev/operator-go/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -68,11 +70,11 @@ type ListenerReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
 func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	existInstance := &operatorlistenersv1alpha1.Listener{}
+	existInstance := &listeners.Listener{}
 
 	if err := r.Get(ctx, req.NamespacedName, existInstance); err != nil {
 		if client.IgnoreNotFound(err) == nil {
-			logger.V(5).Info("Listener resource not found. Ignoring since object must be deleted")
+			logger.V(1).Info("Listener resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		logger.Error(err, "Failed to get Listener")
@@ -82,195 +84,203 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	logger.V(1).Info("Reconciling Listener", "Name", instance.Name)
 
-	serviceType, err := r.getServiceTypeFromListenerClass(ctx, instance.Spec.ClassName, instance.Namespace)
-	if err != nil {
-		logger.Error(err, "Failed to get service type")
-		return ctrl.Result{}, err
-	}
-	logger.Info("Service type", "type", serviceType, "listener", instance.Name, "namespace", instance.Namespace)
-
-	labels := r.getServiceMatchLabeles(instance)
-
-	svcReconciler := &ServiceReconciler{
-		client: r.Client,
-		cr:     instance,
-	}
-
-	if result, err := svcReconciler.createService(
-		ctx,
-		labels,
-		*serviceType, // Remove unnecessary conversion
-	); err != nil {
+	// Create a service for the listener
+	svcReconciler := &ServiceReconciler{client: r.Client, listener: instance}
+	if result, err := svcReconciler.createService(ctx); err != nil {
 		logger.Error(err, "Failed to create service")
 		return ctrl.Result{}, err
-	} else if result.Requeue {
+	} else if !result.IsZero() {
 		return result, nil
 	}
 
-	status, err := r.buildListenerStatus(ctx, r.Client, instance)
-	if err != nil {
-		logger.Error(err, "Failed to build listener status")
-		return ctrl.Result{}, err
-	}
-
-	instance.Status = *status
-
-	if err := r.updateListener(ctx, instance); err != nil {
-		logger.Error(err, "Failed to update listener")
+	// Update listener status with service information
+	if err := r.updateListenerStatus(ctx, instance, svcReconciler); err != nil {
+		logger.Error(err, "Failed to update listener status")
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *ListenerReconciler) getListenerClass(
-	ctx context.Context,
-	name, namespace string,
-) (*operatorlistenersv1alpha1.ListenerClass, error) {
-	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
-	if err := r.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, listenerClass); err != nil {
-		return nil, err
-	}
-	return listenerClass, nil
+// SetupWithManager sets up the controller with the Manager.
+func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&listeners.Listener{}).
+		Watches(&corev1.Endpoints{}, handler.TypedEnqueueRequestsFromMapFunc(r.handleEndpointsChanges)).
+		Watches(&corev1.PersistentVolume{}, handler.EnqueueRequestsFromMapFunc(r.handlePVChanges)).
+		Watches(&listeners.ListenerClass{}, handler.EnqueueRequestsFromMapFunc(r.handleListenerClassChanges)).
+		Complete(r)
 }
 
-func (r *ListenerReconciler) getServiceTypeFromListenerClass(
-	ctx context.Context,
-	name, namespace string,
-) (*corev1.ServiceType, error) {
-	listenerClass, err := r.getListenerClass(ctx, name, namespace)
-
-	if err != nil {
-		return nil, err
+func (r *ListenerReconciler) handleListenerClassChanges(ctx context.Context, obj client.Object) []ctrl.Request {
+	listenerClass := obj.(*listeners.ListenerClass)
+	list := &listeners.ListenerList{}
+	if err := r.List(ctx, list); err != nil {
+		return nil
 	}
 
-	switch *listenerClass.Spec.ServiceType {
-	case corev1.ServiceTypeNodePort:
-		return listenerClass.Spec.ServiceType, nil
-	case corev1.ServiceTypeLoadBalancer:
-		return listenerClass.Spec.ServiceType, nil
-	case corev1.ServiceTypeClusterIP:
-		return listenerClass.Spec.ServiceType, nil
-	default:
-		return nil, errors.New("unknown service type: " + string(*listenerClass.Spec.ServiceType))
-	}
-}
-
-func (r *ListenerReconciler) getServiceMatchLabeles(listener *operatorlistenersv1alpha1.Listener) map[string]string {
-	labels := map[string]string{}
-
-	if listener.Spec.ExtraPodMatchLabels != nil {
-		for k, v := range listener.Spec.ExtraPodMatchLabels {
-			labels[k] = v
+	requests := make([]ctrl.Request, 0)
+	for _, listener := range list.Items {
+		if listener.Spec.ClassName == listenerClass.Name {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: client.ObjectKey{
+					Name:      listener.Name,
+					Namespace: listener.Namespace,
+				},
+			})
 		}
 	}
 
-	maps.Copy(labels, util.ListenerLabelsForPod(listener.Spec.ClassName, listener.Name))
-
-	return labels
+	return requests
 }
 
-func (r *ListenerReconciler) buildListenerStatus(
-	ctx context.Context,
-	client client.Client,
-	listener *operatorlistenersv1alpha1.Listener,
-) (*operatorlistenersv1alpha1.ListenerStatus, error) {
-	status := &operatorlistenersv1alpha1.ListenerStatus{
-		ServiceName: listener.Name,
-	}
-	svcReconciler := &ServiceReconciler{
-		client: client,
-		cr:     listener,
+func (r *ListenerReconciler) handleEndpointsChanges(ctx context.Context, obj client.Object) []ctrl.Request {
+	endpoints := obj.(*corev1.Endpoints)
+	list := &listeners.ListenerList{}
+	if err := r.List(ctx, list); err != nil {
+		return nil
 	}
 
+	requests := make([]ctrl.Request, 0)
+	for _, listener := range list.Items {
+		if listener.Status.ServiceName == endpoints.Name {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: client.ObjectKey{
+					Name:      listener.Name,
+					Namespace: listener.Namespace,
+				},
+			})
+		}
+	}
+
+	return requests
+}
+
+func (r *ListenerReconciler) handlePVChanges(ctx context.Context, obj client.Object) []ctrl.Request {
+	pv := obj.(*corev1.PersistentVolume)
+
+	if ns, ok := pv.Labels[util.LabelListenerNamespace]; ok {
+		if name, ok := pv.Labels[constants.AnnotationListenerName]; ok {
+			return []ctrl.Request{{
+				NamespacedName: types.NamespacedName{
+					Name:      name,
+					Namespace: ns,
+				},
+			}}
+		}
+	}
+	return nil
+}
+
+func (r *ListenerReconciler) preferredAddressType(ctx context.Context, listener *listeners.Listener) (listeners.AddressType, error) {
+	listenerClass := &listeners.ListenerClass{}
+	if err := r.Get(ctx, client.ObjectKey{Name: listener.Spec.ClassName}, listenerClass); err != nil {
+		logger.Error(err, "Failed to get ListenerClass")
+		return "", err
+	}
+
+	if listenerClass.Spec.PreferredAddressType == listeners.AddressTypeHostnameConservative {
+		if *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
+			return listeners.AddressTypeIP, nil
+		}
+		return listeners.AddressTypeHostname, nil
+	}
+	return listenerClass.Spec.PreferredAddressType, nil
+}
+
+func (r *ListenerReconciler) updateListenerStatus(ctx context.Context, listener *listeners.Listener, svcReconciler *ServiceReconciler) error {
+	status := &listeners.ListenerStatus{ServiceName: listener.Name}
 	service, err := svcReconciler.describe(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	serviceType := svcReconciler.getServiceType(service)
-	servicePorts := svcReconciler.getPorts(service)
+	preferredAddressType, err := r.preferredAddressType(ctx, listener)
+	if err != nil {
+		return err
+	}
+
+	serviceAddress := NewServiceAddress(r.Client, service)
+
+	serviceType := serviceAddress.getServiceType()
+	servicePorts := serviceAddress.getPorts()
 
 	// update service NodePorts to status when service type is NodePort
 	switch serviceType {
 	case corev1.ServiceTypeNodePort:
-		ports, err := svcReconciler.getNodePorts(service)
+		ports, err := serviceAddress.getNodePorts()
 		if err != nil {
-			return nil, err
+			return err
 		}
-
-		addresses, err := svcReconciler.getNodesAddress(ctx)
+		addresses, err := serviceAddress.getNodesAddresses(ctx)
 		if err != nil {
-			return nil, err
+			return err
 		}
-
 		for _, address := range addresses {
-			status.IngressAddresses = append(status.IngressAddresses, operatorlistenersv1alpha1.IngressAddressSpec{
-				Address:     address.Address,
-				AddressType: address.AddressType,
+			pickAddress := address.Pick(preferredAddressType)
+			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
 				Ports:       ports,
+				Address:     pickAddress.Address,
+				AddressType: pickAddress.AddressType,
 			})
 		}
 		status.NodePorts = ports
 	case corev1.ServiceTypeLoadBalancer:
-		address, err := svcReconciler.getLbIngressAddress(service)
+		addresses, err := serviceAddress.getLbIngressAddresses()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		status.IngressAddresses = append(status.IngressAddresses, operatorlistenersv1alpha1.IngressAddressSpec{
-			Address:     address,
-			AddressType: operatorlistenersv1alpha1.AddressTypeIP,
-			Ports:       servicePorts,
-		})
+		for _, addr := range addresses {
+			pickAddress := addr.Pick(preferredAddressType)
+			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
+				Address:     pickAddress.Address,
+				AddressType: pickAddress.AddressType,
+				Ports:       servicePorts,
+			})
+		}
 	case corev1.ServiceTypeClusterIP:
-		address, err := svcReconciler.getClusterIp(service)
-		if err != nil {
-			return nil, err
-		}
-		status.IngressAddresses = append(status.IngressAddresses, operatorlistenersv1alpha1.IngressAddressSpec{
-			Address:     address,
-			AddressType: operatorlistenersv1alpha1.AddressTypeIP,
-			Ports:       servicePorts,
-		})
-	default:
-		return nil, errors.New("unknown service type: " + string(serviceType))
-
-	}
-	logger.V(5).Info("Listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
-	return status, nil
-}
-
-func (r *ListenerReconciler) updateListener(ctx context.Context, listener *operatorlistenersv1alpha1.Listener) error {
-	return r.Status().Update(ctx, listener)
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
-	mapFunc := handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o client.Object) []reconcile.Request {
-		endpoints := o.(*corev1.Endpoints)
-		list := &operatorlistenersv1alpha1.ListenerList{}
-		if err := r.List(ctx, list, client.InNamespace(endpoints.Namespace)); err != nil {
-			logger.Error(err, "Failed to list listeners")
-			return nil
-		}
-
-		var requests []reconcile.Request
-		for _, listener := range list.Items {
-			if listener.Status.ServiceName == endpoints.Name {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: client.ObjectKey{
-						Name:      listener.Name,
-						Namespace: listener.Namespace,
-					},
+		if preferredAddressType == listeners.AddressTypeIP {
+			addresses, err := serviceAddress.getClusterIpAddresses()
+			if err != nil {
+				return err
+			}
+			for _, addr := range addresses {
+				pickAddress := addr.Pick(preferredAddressType)
+				status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
+					Address:     pickAddress.Address,
+					AddressType: pickAddress.AddressType,
+					Ports:       servicePorts,
 				})
 			}
+		} else {
+			address := r.getServiceFQDN(service)
+			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
+				Address:     address,
+				AddressType: listeners.AddressTypeHostname,
+				Ports:       servicePorts,
+			})
 		}
-		return requests
-	})
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorlistenersv1alpha1.Listener{}).
-		Watches(&corev1.Endpoints{}, mapFunc).
-		Complete(r)
+	default:
+		return fmt.Errorf("unsupported service type %s for listener %s, namespace %s", serviceType, listener.Name, listener.Namespace)
+	}
+
+	logger.V(1).Info("To update listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := r.Get(ctx, client.ObjectKeyFromObject(listener), listener); err != nil {
+			return err
+		}
+		listener.Status = *status
+		return r.Status().Update(ctx, listener)
+	})
+}
+
+func (r *ListenerReconciler) getServiceFQDN(service *corev1.Service) string {
+	return service.Name + "." + service.Namespace + ".svc." + r.getClusterDomain()
+}
+
+func (r *ListenerReconciler) getClusterDomain() string {
+	// TODO: get cluster domain from cluster configuration
+	return "cluster.local"
 }

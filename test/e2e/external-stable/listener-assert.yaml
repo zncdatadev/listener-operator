@@ -1,50 +1,54 @@
-################### example #################
+######################### example #######################
 # apiVersion: listeners.kubedoop.dev/v1alpha1
 # kind: Listener
 # metadata:
-#   creationTimestamp: "2024-07-22T12:05:01Z"
+#   creationTimestamp: "2024-12-25T06:24:56Z"
 #   generation: 1
-#   name: caddy
-#   namespace: chainsaw-wanted-shark
+#   name: caddy-listener
+#   namespace: default
 #   ownerReferences:
 #   - apiVersion: v1
 #     blockOwnerDeletion: true
 #     controller: true
 #     kind: PersistentVolume
-#     name: pvc-416a0a5b-ca83-4aa3-9968-a67ad4cb3f4d
-#     uid: e87bf4c4-bab4-434f-aeee-2242c22d2622
-#   resourceVersion: "49702"
-#   uid: bb0a68f0-07b5-445f-a261-13b34768be57
+#     name: pvc-bb77a096-1cb5-4344-9145-2528a43d533b
+#     uid: 66935379-ae26-47a5-afa0-6221976f5fd7
+#   resourceVersion: "35770"
+#   uid: 3a1448d0-cd64-4279-8a58-179ceef4be60
 # spec:
 #   className: external-stable
 #   ports:
 #   - name: http
 #     port: 8080
 #     protocol: TCP
+#   publishNotReadyAddresses: true
 # status:
 #   ingressAddresses:
-#   - address: 172.18.0.2
+#   - address: 172.18.0.5
 #     addressType: IP
 #     ports:
-#       http: 30286
+#       http: 32574
 #   nodePorts:
-#     http: 30286
-#   serviceName: caddy
-################### end example #################
+#     http: 32574
+#   serviceName: caddy-listener
+######################### end example #######################
 
+# Default external-stable ListenerClass serviceType is NodePort, so we assert listener ingress address is NodePort
+# But external-stable servieType should LoadBalancer, when the environment support LoadBalancer
 ---
 apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: Listener
 metadata:
-  name: caddy
+  name: caddy-listener
 spec:
   className: external-stable
   ports:
   - name: http
     port: 8080
     protocol: TCP
+  publishNotReadyAddresses: true
 status:
   ~.ingressAddresses:
     addressType: IP
   (nodePorts.http != null): true
-  serviceName: caddy
+  serviceName: caddy-listener
