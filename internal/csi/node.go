@@ -156,6 +156,11 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	// update listener meta to pv labels
+	if err := n.patchPVLabelsWithListener(ctx, pv, listener); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	// update pod labels with listener name
 	if err := n.patchPodLabelsWithListener(ctx, pod, listener); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -264,7 +269,7 @@ func (n *NodeServer) patchPVLabelsWithListener(
 	pv *corev1.PersistentVolume,
 	listener *operatorlistenersv1alpha1.Listener,
 ) error {
-	orginal := pv.DeepCopy()
+	original := pv.DeepCopy()
 	labels := util.ListenerMetaLabels(listener)
 
 	if pv.Labels == nil {
@@ -273,7 +278,7 @@ func (n *NodeServer) patchPVLabelsWithListener(
 
 	maps.Copy(pv.Labels, labels)
 
-	if err := n.client.Patch(ctx, pv, client.MergeFrom(orginal)); err != nil {
+	if err := n.client.Patch(ctx, pv, client.MergeFrom(original)); err != nil {
 		log.Error(err, "Patch pv label error", "pv", pv.Name)
 		return err
 	}
