@@ -264,11 +264,7 @@ func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath stri
 	return nil
 }
 
-func (n *NodeServer) patchPVLabelsWithListener(
-	ctx context.Context,
-	pv *corev1.PersistentVolume,
-	listener *operatorlistenersv1alpha1.Listener,
-) error {
+func (n *NodeServer) patchPVLabelsWithListener(ctx context.Context, pv *corev1.PersistentVolume, listener *operatorlistenersv1alpha1.Listener) error {
 	original := pv.DeepCopy()
 	labels := util.ListenerMetaLabels(listener)
 
@@ -286,11 +282,7 @@ func (n *NodeServer) patchPVLabelsWithListener(
 	return nil
 }
 
-func (n *NodeServer) patchPodLabelsWithListener(
-	ctx context.Context,
-	pod *corev1.Pod,
-	listener *operatorlistenersv1alpha1.Listener,
-) error {
+func (n *NodeServer) patchPodLabelsWithListener(ctx context.Context, pod *corev1.Pod, listener *operatorlistenersv1alpha1.Listener) error {
 	original := pod.DeepCopy()
 	labels := util.ListenerMountPodLabels(listener)
 
@@ -312,12 +304,7 @@ func (n *NodeServer) patchPodLabelsWithListener(
 // getAddresses gets the listener address and ports from the listener status.
 // When get address from listener status, if listener status is not ready,
 // an error will raise. NodeController will retry to get address from listener status.
-func (n *NodeServer) getAddresses(
-	ctx context.Context,
-	listener *operatorlistenersv1alpha1.Listener,
-	pod *corev1.Pod,
-) ([]util.IngressAddress, error) {
-
+func (n *NodeServer) getAddresses(ctx context.Context, listener *operatorlistenersv1alpha1.Listener, pod *corev1.Pod) ([]util.IngressAddress, error) {
 	// Get fresh listener, to avoid get listener status error
 	if err := n.client.Get(ctx, client.ObjectKeyFromObject(listener), listener); err != nil {
 		return nil, err
@@ -443,12 +430,6 @@ func (n *NodeServer) getListener(
 		return listener, nil
 	}
 
-	// get pvc
-	pvc, err := n.getPVC(ctx, pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
 	// Note: all port name must be set, otherwise it will raise error
 	ports, err := n.getPodPorts(pod)
 	if err != nil {
@@ -457,36 +438,31 @@ func (n *NodeServer) getListener(
 
 	// get listener when listener name exist in volume context,·
 	// else create or update a listener by listener class and pod info.
-	listener, err := n.createOrUpdateListener(
-		ctx,
-		volumeContext,
-		pv,
-		pvc.GetObjectMeta().GetLabels(),
-		ports,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return listener, nil
+	return n.createOrUpdateListener(ctx, volumeContext, pv, ports)
 }
 
 func (n *NodeServer) createOrUpdateListener(
 	ctx context.Context,
 	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
-	labels map[string]string,
 	ports []operatorlistenersv1alpha1.PortSpec,
 ) (*operatorlistenersv1alpha1.Listener, error) {
+	// get pvc
+	pvc, err := n.getPVC(ctx, pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	listener := &operatorlistenersv1alpha1.Listener{
-		Spec: operatorlistenersv1alpha1.ListenerSpec{
-			ClassName: *volumeContext.ListenerClassName,
-			Ports:     ports,
-		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      *volumeContext.Pod,
+			Name:      pvc.Name,
 			Namespace: *volumeContext.PodNamespace,
-			Labels:    labels,
+			Labels:    pvc.Labels,
+		},
+		Spec: operatorlistenersv1alpha1.ListenerSpec{
+			ClassName:                *volumeContext.ListenerClassName,
+			Ports:                    ports,
+			PublishNotReadyAddresses: true,
 		},
 	}
 
