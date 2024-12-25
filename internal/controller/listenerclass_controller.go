@@ -19,7 +19,7 @@ package controller
 import (
 	"context"
 
-	operatorlisteners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +53,6 @@ func (r *ListenerClassReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *ListenerClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&operatorlisteners.ListenerClass{}).
+		For(&listeners.ListenerClass{}).
 		Complete(r)
 }

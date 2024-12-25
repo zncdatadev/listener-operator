@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"github.com/zncdatadev/operator-go/pkg/constants"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -134,7 +134,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 		return nil, err
 	}
 
-	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
+	listenerClass := &listeners.ListenerClass{}
 
 	// get the listener class
 	if err := n.client.Get(ctx, client.ObjectKey{
@@ -264,7 +264,7 @@ func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath stri
 	return nil
 }
 
-func (n *NodeServer) patchPVLabelsWithListener(ctx context.Context, pv *corev1.PersistentVolume, listener *operatorlistenersv1alpha1.Listener) error {
+func (n *NodeServer) patchPVLabelsWithListener(ctx context.Context, pv *corev1.PersistentVolume, listener *listeners.Listener) error {
 	original := pv.DeepCopy()
 	labels := util.ListenerMetaLabels(listener)
 
@@ -282,7 +282,7 @@ func (n *NodeServer) patchPVLabelsWithListener(ctx context.Context, pv *corev1.P
 	return nil
 }
 
-func (n *NodeServer) patchPodLabelsWithListener(ctx context.Context, pod *corev1.Pod, listener *operatorlistenersv1alpha1.Listener) error {
+func (n *NodeServer) patchPodLabelsWithListener(ctx context.Context, pod *corev1.Pod, listener *listeners.Listener) error {
 	original := pod.DeepCopy()
 	labels := util.ListenerMountPodLabels(listener)
 
@@ -304,7 +304,7 @@ func (n *NodeServer) patchPodLabelsWithListener(ctx context.Context, pod *corev1
 // getAddresses gets the listener address and ports from the listener status.
 // When get address from listener status, if listener status is not ready,
 // an error will raise. NodeController will retry to get address from listener status.
-func (n *NodeServer) getAddresses(ctx context.Context, listener *operatorlistenersv1alpha1.Listener, pod *corev1.Pod) ([]util.IngressAddress, error) {
+func (n *NodeServer) getAddresses(ctx context.Context, listener *listeners.Listener, pod *corev1.Pod) ([]util.IngressAddress, error) {
 	// Get fresh listener, to avoid get listener status error
 	if err := n.client.Get(ctx, client.ObjectKeyFromObject(listener), listener); err != nil {
 		return nil, err
@@ -359,12 +359,12 @@ func (n *NodeServer) getPod(ctx context.Context, podName, podNamespace string) (
 	return pod, nil
 }
 
-func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]operatorlistenersv1alpha1.PortSpec, error) {
-	ports := []operatorlistenersv1alpha1.PortSpec{}
+func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]listeners.PortSpec, error) {
+	ports := []listeners.PortSpec{}
 	for _, container := range pod.Spec.Containers {
 		for _, port := range container.Ports {
 			if port.Name != "" {
-				ports = append(ports, operatorlistenersv1alpha1.PortSpec{
+				ports = append(ports, listeners.PortSpec{
 					Name:     port.Name,
 					Protocol: port.Protocol,
 					Port:     port.ContainerPort,
@@ -417,9 +417,9 @@ func (n *NodeServer) getListener(
 	pod *corev1.Pod,
 	pv *corev1.PersistentVolume,
 	volumeContext volumeContext,
-) (*operatorlistenersv1alpha1.Listener, error) {
+) (*listeners.Listener, error) {
 	if volumeContext.ListenerName != nil {
-		listener := &operatorlistenersv1alpha1.Listener{}
+		listener := &listeners.Listener{}
 		if err := n.client.Get(ctx, client.ObjectKey{
 			Name:      *volumeContext.ListenerName,
 			Namespace: *volumeContext.PodNamespace,
@@ -445,21 +445,21 @@ func (n *NodeServer) createOrUpdateListener(
 	ctx context.Context,
 	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
-	ports []operatorlistenersv1alpha1.PortSpec,
-) (*operatorlistenersv1alpha1.Listener, error) {
+	ports []listeners.PortSpec,
+) (*listeners.Listener, error) {
 	// get pvc
 	pvc, err := n.getPVC(ctx, pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	listener := &operatorlistenersv1alpha1.Listener{
+	listener := &listeners.Listener{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pvc.Name,
 			Namespace: *volumeContext.PodNamespace,
 			Labels:    pvc.Labels,
 		},
-		Spec: operatorlistenersv1alpha1.ListenerSpec{
+		Spec: listeners.ListenerSpec{
 			ClassName:                *volumeContext.ListenerClassName,
 			Ports:                    ports,
 			PublishNotReadyAddresses: true,

@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	operatorlistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -119,7 +119,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}, nil
 }
 
-func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *operatorlistenersv1alpha1.ListenerClass) []*csi.Topology {
+func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *listeners.ListenerClass) []*csi.Topology {
 	if *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
 		return request.GetAccessibilityRequirements().GetRequisite()
 	} else {
@@ -127,8 +127,8 @@ func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeReques
 	}
 }
 
-func (c *ControllerServer) getListenerClass(ctx context.Context, name string, namespace string) (*operatorlistenersv1alpha1.ListenerClass, error) {
-	listenerClass := &operatorlistenersv1alpha1.ListenerClass{}
+func (c *ControllerServer) getListenerClass(ctx context.Context, name string, namespace string) (*listeners.ListenerClass, error) {
+	listenerClass := &listeners.ListenerClass{}
 	err := c.client.Get(ctx, client.ObjectKey{
 		Name:      name,
 		Namespace: namespace,

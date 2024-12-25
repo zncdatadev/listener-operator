@@ -1,47 +1,51 @@
-################### example #################
+######################### example #######################
 # apiVersion: listeners.kubedoop.dev/v1alpha1
 # kind: Listener
 # metadata:
-#   creationTimestamp: "2024-07-22T10:34:54Z"
+#   creationTimestamp: "2024-12-25T06:19:48Z"
 #   generation: 1
-#   name: pod-cluster-internal
-#   namespace: chainsaw-liberal-squid
+#   name: caddy-listener
+#   namespace: default
 #   ownerReferences:
 #   - apiVersion: v1
 #     blockOwnerDeletion: true
 #     controller: true
 #     kind: PersistentVolume
-#     name: pvc-e187b776-9ee3-45c5-801f-790baa9d6ede
-#     uid: 9497bfb0-76b1-4c88-86f7-2b3bc62c25ee
-#   resourceVersion: "37191"
-#   uid: 2f09a10a-2e23-41c5-9d65-c81523648719
+#     name: pvc-f529b980-26c6-44de-aff0-2038513f2eeb
+#     uid: 2d930a16-5881-4c34-869f-d1447edc976d
+#   resourceVersion: "35301"
+#   uid: 6f5e8905-20a0-43b7-bf17-0f8c633f9b89
 # spec:
 #   className: cluster-internal
 #   ports:
 #   - name: http
 #     port: 8080
 #     protocol: TCP
+#   publishNotReadyAddresses: true
 # status:
 #   ingressAddresses:
-#   - address: 10.96.172.39
-#     addressType: IP
+#   - address: caddy-listener.default.svc.cluster.local
+#     addressType: Hostname
 #     ports:
 #       http: 8080
-#   serviceName: pod-cluster-internal
-################### end example #################
+#   serviceName: caddy-listener
+######################### end example #######################
 
 ---
 apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: Listener
 metadata:
-  name: caddy
+  name: caddy-listener
 spec:
   className: cluster-internal
   ports:
   - name: http
     port: 8080
     protocol: TCP
+  publishNotReadyAddresses: true
 status:
   ~.ingressAddresses:
-    addressType: IP
-  serviceName: caddy
+    addressType: Hostname
+    ports:
+      http: 8080
+  serviceName: caddy-listener

@@ -3,6 +3,7 @@ package listener
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
@@ -139,49 +140,37 @@ func (s *ServiceReconciler) describe(ctx context.Context) (*corev1.Service, erro
 	return service, nil
 }
 
-func (s *ServiceReconciler) getNodePorts(service *corev1.Service) (map[string]int32, error) {
-	if service.Spec.Type != corev1.ServiceTypeNodePort {
-		return nil, errors.New("service is not of type NodePort")
-	}
-
-	ports := map[string]int32{}
-	for _, port := range service.Spec.Ports {
-		if port.Name == "" {
-			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
-			continue
-		}
-		ports[port.Name] = port.NodePort
-	}
-	logger.Info("get node ports", "ports", ports, "service", service.Name, "namespace", service.Namespace)
-	return ports, nil
+type ServiceAddress struct {
+	client  client.Client
+	service *corev1.Service
 }
 
-func (s *ServiceReconciler) getPorts(service *corev1.Service) map[string]int32 {
-	ports := map[string]int32{}
-	for _, port := range service.Spec.Ports {
-		if port.Name == "" {
-			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", service.Name, "namespace", service.Namespace)
-			continue
-		}
-		ports[port.Name] = port.Port
+func NewServiceAddress(client client.Client, service *corev1.Service) *ServiceAddress {
+	return &ServiceAddress{
+		client:  client,
+		service: service,
 	}
-	logger.Info("get ports", "ports", ports, "service", service.Name, "namespace", service.Namespace)
-	return ports
 }
 
-func (s *ServiceReconciler) getLbIngressAddress(
-	service *corev1.Service,
-) ([]util.AddressInfo, error) {
-	if service.Spec.Type != corev1.ServiceTypeLoadBalancer {
+func (s *ServiceAddress) Name() string {
+	return s.service.Name
+}
+
+func (s *ServiceAddress) Namespace() string {
+	return s.service.Namespace
+}
+
+func (s *ServiceAddress) getLbIngressAddresses() ([]util.AddressInfo, error) {
+	if s.service.Spec.Type != corev1.ServiceTypeLoadBalancer {
 		return nil, errors.New("service is not of type LoadBalancer")
 	}
 
-	if len(service.Status.LoadBalancer.Ingress) == 0 {
+	if len(s.service.Status.LoadBalancer.Ingress) == 0 {
 		return nil, errors.New("service has no LoadBalancer Ingress")
 	}
 
-	addresses := make([]util.AddressInfo, 0, len(service.Status.LoadBalancer.Ingress))
-	for _, ingress := range service.Status.LoadBalancer.Ingress {
+	addresses := make([]util.AddressInfo, 0, len(s.service.Status.LoadBalancer.Ingress))
+	for _, ingress := range s.service.Status.LoadBalancer.Ingress {
 		if ingress.Hostname != "" {
 			addresses = append(addresses, util.AddressInfo{
 				Address:     ingress.Hostname,
@@ -195,23 +184,32 @@ func (s *ServiceReconciler) getLbIngressAddress(
 			})
 		}
 	}
-	logger.Info("get lb ingress address", "addresses", addresses, "service", service.Name, "namespace", service.Namespace)
+	logger.Info("get lb ingress address", "addresses", addresses, "service", s.Name(), "namespace", s.Namespace())
 	return addresses, nil
 }
 
-func (s *ServiceReconciler) getClusterIp(service *corev1.Service) (string, error) {
-	if service.Spec.Type != corev1.ServiceTypeClusterIP {
-		return "", errors.New("service is not of type ClusterIP")
+func (s *ServiceAddress) getClusterIpAddresses() ([]util.AddressInfo, error) {
+	if s.service.Spec.Type != corev1.ServiceTypeClusterIP {
+		return nil, fmt.Errorf("service.Spec.Type is not of type ClusterIP, but %s", s.service.Spec.Type)
 	}
 
-	return service.Spec.ClusterIP, nil
+	addresses := make([]util.AddressInfo, 0, len(s.service.Spec.ClusterIPs))
+	for _, clusterIP := range s.service.Spec.ClusterIPs {
+		addresses = append(addresses, util.AddressInfo{
+			Address:     clusterIP,
+			AddressType: listeners.AddressTypeIP,
+		})
+	}
+
+	logger.Info("get cluster ip", "addresses", addresses, "service", s.Name(), "namespace", s.Namespace())
+	return addresses, nil
 }
 
-func (s *ServiceReconciler) getServiceType(service *corev1.Service) corev1.ServiceType {
-	return service.Spec.Type
+func (s *ServiceAddress) getServiceType() corev1.ServiceType {
+	return s.service.Spec.Type
 }
 
-func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.AddressInfo, error) {
+func (s *ServiceAddress) getNodesAddresses(ctx context.Context) ([]util.AddressInfo, error) {
 	addresses := make([]util.AddressInfo, 0)
 	nodeNames, err := s.getNodeNames(ctx)
 	if err != nil {
@@ -231,17 +229,15 @@ func (s *ServiceReconciler) getNodesAddress(ctx context.Context) ([]util.Address
 		addresses = append(addresses, *address)
 	}
 
-	logger.Info("get nodes address", "addresses", addresses, "service", s.getName(), "namespace", s.getNamespace())
+	logger.Info("get nodes address", "addresses", addresses, "service", s.Name(), "namespace", s.Namespace())
 	return addresses, nil
 }
 
-func (s *ServiceReconciler) getNodeNames(ctx context.Context) ([]string, error) {
-	ns := s.getNamespace()
-	name := s.getName()
+func (s *ServiceAddress) getNodeNames(ctx context.Context) ([]string, error) {
 	nodeNames := make([]string, 0)
 
 	endpoints := &corev1.Endpoints{}
-	if err := s.client.Get(ctx, client.ObjectKey{Namespace: ns, Name: name}, endpoints); err != nil {
+	if err := s.client.Get(ctx, client.ObjectKeyFromObject(s.service), endpoints); err != nil {
 		return nodeNames, err
 	}
 
@@ -249,7 +245,7 @@ func (s *ServiceReconciler) getNodeNames(ctx context.Context) ([]string, error) 
 	// Return an empty address when endpoints are not ready.
 	// When endpoints are ready, this method will be called again to retrieve the addresses.
 	if len(endpoints.Subsets) == 0 {
-		logger.V(1).Info("endpoints is not ready", "service", name, "namespace", ns)
+		logger.V(1).Info("endpoints is not ready", "service", s.Name(), "namespace", s.Namespace())
 		return nodeNames, nil
 	}
 
@@ -259,6 +255,36 @@ func (s *ServiceReconciler) getNodeNames(ctx context.Context) ([]string, error) 
 		}
 	}
 
-	logger.Info("get node names", "nodeNames", nodeNames, "service", name, "namespace", ns)
+	logger.Info("get node names", "nodeNames", nodeNames, "service", s.Name(), "namespace", s.Namespace())
 	return nodeNames, nil
+}
+
+func (s *ServiceAddress) getNodePorts() (map[string]int32, error) {
+	if s.service.Spec.Type != corev1.ServiceTypeNodePort {
+		return nil, errors.New("service is not of type NodePort")
+	}
+
+	ports := map[string]int32{}
+	for _, port := range s.service.Spec.Ports {
+		if port.Name == "" {
+			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", s.Name(), "namespace", s.Namespace())
+			continue
+		}
+		ports[port.Name] = port.NodePort
+	}
+	logger.Info("get node ports", "ports", ports, "service", s.Name(), "namespace", s.Namespace())
+	return ports, nil
+}
+
+func (s *ServiceAddress) getPorts() map[string]int32 {
+	ports := map[string]int32{}
+	for _, port := range s.service.Spec.Ports {
+		if port.Name == "" {
+			logger.V(1).Info("port name is empty, so ignore it", "port", port, "service", s.Name(), "namespace", s.Namespace())
+			continue
+		}
+		ports[port.Name] = port.Port
+	}
+	logger.Info("get ports", "ports", ports, "service", s.Name(), "namespace", s.Namespace())
+	return ports
 }

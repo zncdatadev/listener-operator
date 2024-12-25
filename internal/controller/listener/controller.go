@@ -18,13 +18,14 @@ package listener
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"github.com/zncdatadev/operator-go/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -199,22 +200,22 @@ func (r *ListenerReconciler) updateListenerStatus(ctx context.Context, listener 
 		return err
 	}
 
-	serviceType := svcReconciler.getServiceType(service)
-	servicePorts := svcReconciler.getPorts(service)
+	serviceAddress := NewServiceAddress(r.Client, service)
+
+	serviceType := serviceAddress.getServiceType()
+	servicePorts := serviceAddress.getPorts()
 
 	// update service NodePorts to status when service type is NodePort
 	switch serviceType {
 	case corev1.ServiceTypeNodePort:
-		ports, err := svcReconciler.getNodePorts(service)
+		ports, err := serviceAddress.getNodePorts()
 		if err != nil {
 			return err
 		}
-
-		addresses, err := svcReconciler.getNodesAddress(ctx)
+		addresses, err := serviceAddress.getNodesAddresses(ctx)
 		if err != nil {
 			return err
 		}
-
 		for _, address := range addresses {
 			pickAddress := address.Pick(preferredAddressType)
 			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
@@ -225,11 +226,11 @@ func (r *ListenerReconciler) updateListenerStatus(ctx context.Context, listener 
 		}
 		status.NodePorts = ports
 	case corev1.ServiceTypeLoadBalancer:
-		address, err := svcReconciler.getLbIngressAddress(service)
+		addresses, err := serviceAddress.getLbIngressAddresses()
 		if err != nil {
 			return err
 		}
-		for _, addr := range address {
+		for _, addr := range addresses {
 			pickAddress := addr.Pick(preferredAddressType)
 			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
 				Address:     pickAddress.Address,
@@ -238,16 +239,19 @@ func (r *ListenerReconciler) updateListenerStatus(ctx context.Context, listener 
 			})
 		}
 	case corev1.ServiceTypeClusterIP:
-		if serviceType == corev1.ServiceTypeClusterIP {
-			address, err := svcReconciler.getClusterIp(service)
+		if preferredAddressType == listeners.AddressTypeIP {
+			addresses, err := serviceAddress.getClusterIpAddresses()
 			if err != nil {
 				return err
 			}
-			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
-				Address:     address,
-				AddressType: listeners.AddressTypeIP,
-				Ports:       servicePorts,
-			})
+			for _, addr := range addresses {
+				pickAddress := addr.Pick(preferredAddressType)
+				status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
+					Address:     pickAddress.Address,
+					AddressType: pickAddress.AddressType,
+					Ports:       servicePorts,
+				})
+			}
 		} else {
 			address := r.getServiceFQDN(service)
 			status.IngressAddresses = append(status.IngressAddresses, listeners.IngressAddressSpec{
@@ -258,15 +262,18 @@ func (r *ListenerReconciler) updateListenerStatus(ctx context.Context, listener 
 		}
 
 	default:
-		return errors.New("unknown service type: " + string(serviceType))
-
+		return fmt.Errorf("unsupported service type %s for listener %s, namespace %s", serviceType, listener.Name, listener.Namespace)
 	}
 
-	logger.V(1).Info("Listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
+	logger.V(1).Info("To update listener status", "serviceType", serviceType, "listener", listener.Name, "namespace", listener.Namespace, "status", status)
 
-	listener.Status = *status
-
-	return r.Status().Update(ctx, listener)
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := r.Get(ctx, client.ObjectKeyFromObject(listener), listener); err != nil {
+			return err
+		}
+		listener.Status = *status
+		return r.Status().Update(ctx, listener)
+	})
 }
 
 func (r *ListenerReconciler) getServiceFQDN(service *corev1.Service) string {
