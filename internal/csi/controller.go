@@ -50,16 +50,14 @@ func newCreateVolumeRequestParamsFromMap(params map[string]string) (*createVolum
 
 type ControllerServer struct {
 	csi.UnimplementedControllerServer
-	client  client.Client
-	volumes map[string]int64
+	client client.Client
 }
 
 var _ csi.ControllerServer = &ControllerServer{}
 
 func NewControllerServer(client client.Client) *ControllerServer {
 	return &ControllerServer{
-		client:  client,
-		volumes: map[string]int64{},
+		client: client,
 	}
 }
 
@@ -69,11 +67,6 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}
 
 	requiredCap := request.CapacityRange.GetRequiredBytes()
-	if existCap, ok := c.volumes[request.Name]; ok && existCap < requiredCap {
-		return nil, status.Errorf(codes.AlreadyExists, "Volume: %q, capacity bytes: %d", request.Name, requiredCap)
-	}
-
-	c.volumes[request.Name] = requiredCap
 
 	if request.Parameters["listenerFinalizer"] == "true" {
 		log.V(1).Info("volume is listener finalizer", "volume", request.Name)
@@ -197,11 +190,6 @@ func (c *ControllerServer) DeleteVolume(ctx context.Context, request *csi.Delete
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
-	if _, ok := c.volumes[request.VolumeId]; !ok {
-		// return nil, status.Errorf(codes.NotFound, "Volume ID: %q", request.VolumeId)
-		log.V(1).Info("Volume not found, skip delete volume")
-	}
-
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -253,23 +241,7 @@ func (c *ControllerServer) ValidateVolumeCapabilities(ctx context.Context, reque
 }
 
 func (c *ControllerServer) ListVolumes(ctx context.Context, request *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	entries := make([]*csi.ListVolumesResponse_Entry, 0, len(c.volumes))
-	for volumeID, size := range c.volumes {
-		entries = append(entries, &csi.ListVolumesResponse_Entry{
-			Volume: &csi.Volume{
-				VolumeId:           volumeID,
-				CapacityBytes:      size,
-				VolumeContext:      nil,
-				ContentSource:      nil,
-				AccessibleTopology: nil,
-			},
-		})
-	}
-
-	return &csi.ListVolumesResponse{
-		Entries: entries,
-	}, nil
-
+	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (c *ControllerServer) GetCapacity(ctx context.Context, request *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
