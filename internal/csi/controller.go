@@ -83,7 +83,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 		return nil, status.Errorf(codes.InvalidArgument, "Get createVolumeRequestParams error: %v", err)
 	}
 
-	volumeCtx, err := c.getVolumeContext(params)
+	volumeCtx, err := c.getVolumeContext(ctx, params)
 
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener Volume refer error: %v", err)
@@ -101,7 +101,6 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}
 
 	accessibleTopology := c.getAccessibleTopology(request, listenerClass)
-	log.Info("CreateVolume", "volume", request.Name, "listenerClass", listenerClassName, "accessibleTopology", accessibleTopology)
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			VolumeId:           request.GetName(),
@@ -122,24 +121,16 @@ func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeReques
 
 func (c *ControllerServer) getListenerClass(ctx context.Context, name string, namespace string) (*listeners.ListenerClass, error) {
 	listenerClass := &listeners.ListenerClass{}
-	err := c.client.Get(ctx, client.ObjectKey{
-		Name:      name,
-		Namespace: namespace,
-	}, listenerClass)
-	if err != nil {
+	if err := c.client.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, listenerClass); err != nil {
 		return nil, err
 	}
 
 	return listenerClass, nil
 }
 
-func (c *ControllerServer) getPvc(name, namespace string) (*corev1.PersistentVolumeClaim, error) {
+func (c *ControllerServer) getPvc(ctx context.Context, name, namespace string) (*corev1.PersistentVolumeClaim, error) {
 	pvc := &corev1.PersistentVolumeClaim{}
-	err := c.client.Get(context.Background(), client.ObjectKey{
-		Namespace: namespace,
-		Name:      name,
-	}, pvc)
-	if err != nil {
+	if err := c.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pvc); err != nil {
 		return nil, err
 	}
 
@@ -155,9 +146,8 @@ func (c *ControllerServer) getPvc(name, namespace string) (*corev1.PersistentVol
 // You can use custom annotations:
 //   - listeners.kubedoop.dev/class: <class-name>	# required
 //   - listeners.kubedoop.dev/name: <name>	# optional
-func (c *ControllerServer) getVolumeContext(params *createVolumeRequestParams) (map[string]string, error) {
-
-	pvc, err := c.getPvc(params.PVCName, params.pvcNamespace)
+func (c *ControllerServer) getVolumeContext(ctx context.Context, params *createVolumeRequestParams) (map[string]string, error) {
+	pvc, err := c.getPvc(ctx, params.PVCName, params.pvcNamespace)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "PVC: %q, Namespace: %q. Detail: %v", params.PVCName, params.pvcNamespace, err)
 	}
