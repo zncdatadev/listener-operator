@@ -3,7 +3,4 @@ kind: Pod
 metadata:
   name: access-listeneringress
 status:
-  phase: Running
-  ~.containerStatuses:
-    ready: true
-    restartCount: 0
+  phase: Succeeded
