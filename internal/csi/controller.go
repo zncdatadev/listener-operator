@@ -3,6 +3,7 @@ package csi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -84,20 +85,13 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}
 
 	volumeCtx, err := c.getVolumeContext(ctx, params)
-
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "Get listener Volume refer error: %v", err)
 	}
 
-	listenerClassName, exist := volumeCtx[constants.AnnotationListenersClass]
-
-	if !exist {
-		return nil, status.Errorf(codes.InvalidArgument, "Get listener class name error: %v", err)
-	}
-
-	listenerClass, err := c.getListenerClass(ctx, listenerClassName, params.pvcNamespace)
+	listenerClass, err := c.getListenerClass(ctx, volumeCtx, params.pvcNamespace)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "ListenerClass: %q. Detail: %v", listenerClassName, err)
+		return nil, status.Errorf(codes.Internal, "Get listenerClass error: %v", err)
 	}
 
 	accessibleTopology := c.getAccessibleTopology(request, listenerClass)
@@ -111,53 +105,131 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	}, nil
 }
 
-func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *listeners.ListenerClass) []*csi.Topology {
-	if *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
-		return request.GetAccessibilityRequirements().GetRequisite()
-	} else {
-		return []*csi.Topology{}
-	}
-}
-
-func (c *ControllerServer) getListenerClass(ctx context.Context, name string, namespace string) (*listeners.ListenerClass, error) {
-	listenerClass := &listeners.ListenerClass{}
-	if err := c.client.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, listenerClass); err != nil {
-		return nil, err
-	}
-
-	return listenerClass, nil
-}
-
-func (c *ControllerServer) getPvc(ctx context.Context, name, namespace string) (*corev1.PersistentVolumeClaim, error) {
-	pvc := &corev1.PersistentVolumeClaim{}
-	if err := c.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, pvc); err != nil {
-		return nil, err
-	}
-
-	return pvc, nil
-}
-
-// getVolumeContext gets volume ctx from PVC annotations
-
-//   - get PVC by k8s client with PVC name and namespace, then get annotations from PVC.
-//   - get 'listeners.kubedoop.dev/class' from PVC annotations, and check.
-//   - return annotations.
+// getAccessibleTopology determines the topology requirements for volume accessibility
 //
-// You can use custom annotations:
-//   - listeners.kubedoop.dev/class: <class-name>	# required
-//   - listeners.kubedoop.dev/name: <name>	# optional
+// For NodePort services, the volume should preferably be accessible on nodes specified in
+// the preferred topology requirements. For other service types (LoadBalancer, ClusterIP),
+// the volume can be accessed from any node.
+//
+// Parameters:
+//   - request: CreateVolumeRequest containing topology requirements
+//   - listenerClass: ListenerClass containing service type configuration
+//
+// Returns:
+//   - []*csi.Topology: List of topology requirements
+//     -- For NodePort: returns the first preferred topology from the request
+//     -- For other types: returns empty topology list (accessible from anywhere)
+func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeRequest, listenerClass *listeners.ListenerClass) []*csi.Topology {
+	// For NodePort services, we prefer specific node topology
+	if listenerClass.Spec.ServiceType != nil && *listenerClass.Spec.ServiceType == corev1.ServiceTypeNodePort {
+		if req := request.GetAccessibilityRequirements(); req != nil {
+			preferred := req.GetPreferred()
+			if len(preferred) > 0 {
+				// Only return the first topology preference
+				log.V(1).Info("using first topology preference for NodePort service",
+					"topology", preferred[0])
+				return []*csi.Topology{preferred[0]}
+			}
+		}
+		log.V(1).Info("no accessibility preferences specified for NodePort service")
+	}
+
+	// For other service types or unspecified service type, no topology restrictions
+	log.V(1).Info("no topology restrictions required", "serviceType", listenerClass.Spec.ServiceType)
+	return []*csi.Topology{}
+}
+
+// getListenerClass attempts to get a ListenerClass object in two ways:
+//  1. If volumeContext contains 'listeners.kubedoop.dev/name':
+//     - First gets the Listener by this name
+//     - Then gets the ListenerClass from the Listener's spec.className
+//  2. If volumeContext contains 'listeners.kubedoop.dev/class':
+//     - Directly gets the ListenerClass by this name
+//
+// Parameters:
+//   - ctx: context.Context for the request
+//   - volumeContext: map containing volume context parameters
+//   - namespace: namespace where to look for the resources
+//
+// Returns:
+//   - *listeners.ListenerClass: the found listener class
+//   - error: any error encountered during the process
+//
+// Error cases:
+//   - Neither listener name nor class name found in volume context
+//   - Listener not found when looking up by name
+//   - ListenerClass not found when looking up by name or from listener
+func (c *ControllerServer) getListenerClass(ctx context.Context, volumeContext map[string]string, namespace string) (*listeners.ListenerClass, error) {
+	// Try to get listener name from volume context first
+	if listenerName, exists := volumeContext[constants.AnnotationListenerName]; exists {
+		// Get listener by name
+		listener := &listeners.Listener{}
+		if err := c.client.Get(ctx, client.ObjectKey{Name: listenerName, Namespace: namespace}, listener); err != nil {
+			return nil, fmt.Errorf("get listener error: %v", err)
+		}
+
+		// Get listener class from listener
+		listenerClass := &listeners.ListenerClass{}
+		if err := c.client.Get(ctx, client.ObjectKey{Name: listener.Spec.ClassName, Namespace: namespace}, listenerClass); err != nil {
+			return nil, fmt.Errorf("get listener class from listener error: %v", err)
+		}
+
+		log.V(1).Info("got listener class from listener", "listener", listenerName, "namespace", namespace, "class", listenerClass.Name)
+		return listenerClass, nil
+	}
+
+	// If no listener name found, get listener class directly
+	className, exists := volumeContext[constants.AnnotationListenersClass]
+	if exists {
+		listenerClass := &listeners.ListenerClass{}
+		if err := c.client.Get(ctx, client.ObjectKey{Name: className, Namespace: namespace}, listenerClass); err != nil {
+			return nil, fmt.Errorf("get listener class error: %v", err)
+		}
+
+		log.V(1).Info("got listener class directly", "class", className, "namespace", namespace)
+		return listenerClass, nil
+	}
+
+	return nil, fmt.Errorf("neither listener name nor listener class name found in volume context")
+}
+
+// getVolumeContext retrieves and validates the volume context from PVC annotations
+//
+// The volume context is derived from PVC annotations and contains listener configuration:
+// Required (one of):
+//   - listeners.kubedoop.dev/class: specifies the listener class name
+//   - listeners.kubedoop.dev/name: references an existing listener
+//
+// Flow:
+//  1. Retrieves PVC using provided name and namespace
+//  2. Extracts annotations from the PVC
+//  3. Validates that at least one required annotation exists
+//  4. Returns the complete annotations map as volume context
+//
+// Parameters:
+//   - ctx: context for the request
+//   - params: contains PVC name and namespace
+//
+// Returns:
+//   - map[string]string: PVC annotations as volume context
+//   - error: in cases of:
+//     -- PVC not found
+//     -- Neither required annotation present
+//     -- Other K8s API errors
 func (c *ControllerServer) getVolumeContext(ctx context.Context, params *createVolumeRequestParams) (map[string]string, error) {
-	pvc, err := c.getPvc(ctx, params.PVCName, params.pvcNamespace)
-	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "PVC: %q, Namespace: %q. Detail: %v", params.PVCName, params.pvcNamespace, err)
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err := c.client.Get(ctx, client.ObjectKey{Name: params.PVCName, Namespace: params.pvcNamespace}, pvc); err != nil {
+		return nil, fmt.Errorf("get pvc error: %v", err)
 	}
 
 	annotations := pvc.GetAnnotations()
 	log.V(1).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
 
+	// check only one of them exists
 	_, classNameExists := annotations[constants.AnnotationListenersClass]
-	if !classNameExists {
-		return nil, errors.New("required annotations '" + constants.AnnotationListenersClass + "' not found in PVC")
+	_, listenerNameExist := annotations[constants.AnnotationListenerName]
+	if !classNameExists && !listenerNameExist {
+		return nil, fmt.Errorf("pvc annotations must have one of %q or %q", constants.AnnotationListenersClass, constants.AnnotationListenerName)
 	}
 
 	return annotations, nil

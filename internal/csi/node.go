@@ -124,23 +124,10 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	volumeContext := newVolumeContextFromMap(request.GetVolumeContext())
 	log.V(1).Info("volume context", "volumeID", volumeID, "volumeContext", volumeContext)
 
-	if volumeContext.ListenerClassName == nil {
-		return nil, status.Error(codes.InvalidArgument, "listener class name missing in request")
-	}
-
 	// get the pv
 	pv, err := n.getPV(ctx, request.GetVolumeId())
 	if err != nil {
 		return nil, err
-	}
-
-	// get the listener class
-	listenerClass := &listeners.ListenerClass{}
-	if err := n.client.Get(ctx, client.ObjectKey{
-		Name:      *volumeContext.ListenerClassName,
-		Namespace: *volumeContext.PodNamespace,
-	}, listenerClass); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	pod, err := n.getPod(ctx, *volumeContext.Pod, *volumeContext.PodNamespace)
@@ -149,7 +136,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	}
 
 	// get the listener if listener name already exist volume context,
-	// else create or update by listener class and pod info.
+	// else create by listener class and pod info.
 	listener, err := n.getListener(ctx, pod, pv, *volumeContext)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -432,26 +419,31 @@ func (n *NodeServer) getListener(
 		return listener, nil
 	}
 
-	// get listener when listener name exist in volume context,·
-	// else create or update a listener by listener class and pod info.
-	return n.createOrUpdateListener(ctx, volumeContext, pv, pod)
+	return n.createListener(ctx, volumeContext, pv, pod)
 }
 
-func (n *NodeServer) createOrUpdateListener(
+func (n *NodeServer) createListener(
 	ctx context.Context,
 	volumeContext volumeContext,
 	pv *corev1.PersistentVolume,
 	pod *corev1.Pod,
 ) (*listeners.Listener, error) {
-	pvc, err := n.getPVC(ctx, pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
-	if err != nil {
-		return nil, err
+	listenerClass := &listeners.ListenerClass{}
+	if err := n.client.Get(ctx, client.ObjectKey{
+		Name:      *volumeContext.ListenerClassName,
+		Namespace: *volumeContext.PodNamespace,
+	}, listenerClass); err != nil {
+		return nil, fmt.Errorf("get listener class from volume context error: %v", err)
 	}
 
-	// Note: all port name must be set, otherwise it will raise error
+	pvc, err := n.getPVC(ctx, pv.Spec.ClaimRef.Name, pv.Spec.ClaimRef.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get pvc error: %v", err)
+	}
+
 	ports, err := n.getPodPorts(pod)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get pod ports error: %v", err)
 	}
 
 	listener := &listeners.Listener{
@@ -461,33 +453,33 @@ func (n *NodeServer) createOrUpdateListener(
 			Labels:    pvc.Labels,
 		},
 		Spec: listeners.ListenerSpec{
-			ClassName:                *volumeContext.ListenerClassName,
+			ClassName:                listenerClass.Name,
 			Ports:                    ports,
 			PublishNotReadyAddresses: true,
 		},
 	}
 
-	// set the owner reference
 	if err := ctrl.SetControllerReference(pv, listener, n.client.Scheme()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("set controller reference error: %v", err)
 	}
 
-	if err := n.client.Get(ctx, client.ObjectKeyFromObject(listener), listener); errors.IsNotFound(err) {
-		log.V(1).Info("create a new listener for pod", "listener", listener.Name, "pod", volumeContext.Pod, "namespace", listener.Namespace)
-		if err := n.client.Create(ctx, listener); err != nil {
-			return nil, err
-		}
-	} else if err == nil {
-		log.V(1).Info("Listener found, update listener", "listener", listener.Name, "namespace", listener.Namespace)
-		if err := n.client.Update(ctx, listener); err != nil {
-			return nil, err
-		}
-	} else {
-		log.Error(err, "get listener error", "listener", listener.Name, "namespace", listener.Namespace)
-		return nil, err
+	err = n.client.Create(ctx, listener)
+	if err == nil {
+		log.V(1).Info("successfully created new listener", "listener", listener.Name, "namespace", listener.Namespace)
+		return listener, nil
 	}
 
-	return listener, nil
+	if errors.IsAlreadyExists(err) {
+		existingListener := &listeners.Listener{}
+		err = n.client.Get(ctx, client.ObjectKeyFromObject(listener), existingListener)
+		if err != nil {
+			return nil, fmt.Errorf("get existing listener error: %v", err)
+		}
+		log.V(1).Info("found existing listener", "listener", existingListener.Name, "namespace", existingListener.Namespace)
+		return existingListener, nil
+	}
+
+	return nil, fmt.Errorf("create listener error: %v", err)
 }
 
 // mount mounts the volume to the target path.
