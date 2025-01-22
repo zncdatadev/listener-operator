@@ -4,7 +4,7 @@
 # metadata:
 #   creationTimestamp: "2024-12-25T06:19:48Z"
 #   generation: 1
-#   name: caddy-listener
+#   name: caddy-listener-volume
 #   namespace: default
 #   ownerReferences:
 #   - apiVersion: v1
@@ -24,18 +24,18 @@
 #   publishNotReadyAddresses: true
 # status:
 #   ingressAddresses:
-#   - address: caddy-listener.default.svc.cluster.local
+#   - address: caddy-listener-volume.default.svc.cluster.local
 #     addressType: Hostname
 #     ports:
 #       http: 8080
-#   serviceName: caddy-listener
+#   serviceName: caddy-listener-volume
 ######################### end example #######################
 
 ---
 apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: Listener
 metadata:
-  name: caddy-listener
+  name: caddy-listener-volume
 spec:
   className: cluster-internal
   ports:
@@ -48,4 +48,4 @@ status:
     addressType: Hostname
     ports:
       http: 8080
-  serviceName: caddy-listener
+  serviceName: caddy-listener-volume

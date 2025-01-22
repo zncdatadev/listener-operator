@@ -41,3 +41,8 @@ spec:
         file: ../commons/servicediscovery-assert.yaml
     - assert:
         file: ../commons/listeneringress-assert.yaml
+
+    - apply:
+        file: access-manual-listener.yaml
+    - assert:
+        file: access-manual-listener-assert.yaml
