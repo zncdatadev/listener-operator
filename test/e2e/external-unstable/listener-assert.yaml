@@ -4,7 +4,7 @@
 # metadata:
 #   creationTimestamp: "2024-12-25T06:30:44Z"
 #   generation: 1
-#   name: caddy-listener
+#   name: caddy-listener-volume
 #   namespace: default
 #   ownerReferences:
 #   - apiVersion: v1
@@ -30,14 +30,14 @@
 #       http: 30149
 #   nodePorts:
 #     http: 30149
-#   serviceName: caddy-listener
+#   serviceName: caddy-listener-volume
 ######################### end example #######################
 
 ---
 apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: Listener
 metadata:
-  name: caddy-listener
+  name: caddy-listener-volume
 spec:
   className: external-unstable
   ports:
@@ -49,4 +49,4 @@ status:
   ~.ingressAddresses:
     addressType: IP
   (nodePorts.http != null): true
-  serviceName: caddy-listener
+  serviceName: caddy-listener-volume

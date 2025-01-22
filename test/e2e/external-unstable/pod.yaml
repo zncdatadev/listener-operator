@@ -63,7 +63,7 @@ spec:
       EOF
       echo "created configmap"
     volumeMounts:
-    - name: listener
+    - name: listener-volume
       mountPath: /opt/listener/
   containers:
   - name: main
@@ -82,7 +82,7 @@ spec:
     - containerPort: 8080
       name: http
     volumeMounts:
-    - name: listener
+    - name: listener-volume
       mountPath: /opt/listener/
     readinessProbe:
       httpGet:
@@ -97,7 +97,7 @@ spec:
       periodSeconds: 2
       failureThreshold: 3
   volumes:
-  - name: listener
+  - name: listener-volume
     ephemeral:
       volumeClaimTemplate:
         metadata:

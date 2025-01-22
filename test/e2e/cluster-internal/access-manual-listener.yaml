@@ -84,8 +84,8 @@ spec:
           exit 1
         resources:
             limits:
-              memory: "10Mi"
-              cpu: "10m"
+              memory: "50Mi"
+              cpu: "50m"
         volumeMounts:
           - name: manual-listener
             mountPath: /opt/listener

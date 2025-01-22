@@ -4,7 +4,7 @@
 # metadata:
 #   creationTimestamp: "2024-12-25T06:24:56Z"
 #   generation: 1
-#   name: caddy-listener
+#   name: caddy-listener-volume
 #   namespace: default
 #   ownerReferences:
 #   - apiVersion: v1
@@ -30,7 +30,7 @@
 #       http: 32574
 #   nodePorts:
 #     http: 32574
-#   serviceName: caddy-listener
+#   serviceName: caddy-listener-volume
 ######################### end example #######################
 
 # Default external-stable ListenerClass serviceType is NodePort, so we assert listener ingress address is NodePort
@@ -39,7 +39,7 @@
 apiVersion: listeners.kubedoop.dev/v1alpha1
 kind: Listener
 metadata:
-  name: caddy-listener
+  name: caddy-listener-volume
 spec:
   className: external-stable
   ports:
@@ -51,4 +51,4 @@ status:
   ~.ingressAddresses:
     addressType: IP
   (nodePorts.http != null): true
-  serviceName: caddy-listener
+  serviceName: caddy-listener-volume

@@ -8,6 +8,7 @@ metadata:
   labels:
     name: access-listeneringress
 spec:
+  restartPolicy: Never
   serviceAccountName: test
   containers:
   - name: kubectl
@@ -16,33 +17,33 @@ spec:
     - sh
     - -c
     - |
-      ERROR_MSG="failure with listener ingress"
-      SUCCESS_MSG="success with listener ingress"
       echo "accessing with listener ingress"
 
       # get the listener
-      listener=$(kubectl get listener caddy-listener -o jsonpath='{.status.ingressAddresses[0].address}')
-      if [ -z "$listener" ]; then
+      address=$(kubectl get listener caddy-listener-volume -o jsonpath='{.status.ingressAddresses[0].address}')
+      if [ -z "$address" ]; then
         echo "listener address not found"
         exit 1
       fi
 
       # get the port
-      port=$(kubectl get listener caddy-listener -o jsonpath='{.status.ingressAddresses[0].ports.http}')
+      port=$(kubectl get listener caddy-listener-volume -o jsonpath='{.status.ingressAddresses[0].ports.http}')
       if [ -z "$port" ]; then
         echo "listener port not found"
         exit 1
       fi
 
+      echo "getting listener address: $address, port: $port"
+
       # access the listener
-      if wget -qO - http://$listener:$port | grep -q "Caddy works"; then
-        echo $SUCCESS_MSG
-        tail -f /dev/null
+      if wget -qO - http://$address:$port | grep -q "Caddy works"; then
+        echo "accessed listener ingress successfully"
+        exit 0
       else
-        echo $ERROR_MSG
+        echo "failed to access listener ingress"
         exit 1
       fi
     resources:
       limits:
-        cpu: 50m
-        memory: 50Mi
+        cpu: 100m
+        memory: 100Mi
