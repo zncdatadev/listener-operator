@@ -1,6 +1,6 @@
 module github.com/zncdatadev/listener-operator
 
-go 1.23.4
+go 1.24.1
 
 require (
 	github.com/container-storage-interface/spec v1.11.0
@@ -12,7 +12,7 @@ require (
 	google.golang.org/grpc v1.70.0
 	k8s.io/apimachinery v0.32.2
 	k8s.io/client-go v0.32.2
-	sigs.k8s.io/controller-runtime v0.20.3
+	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/yaml v1.4.0
 )
 
