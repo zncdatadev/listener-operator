@@ -482,6 +482,9 @@ func (n *NodeServer) createListener(
 	return nil, fmt.Errorf("create listener error: %v", err)
 }
 
+// publishPodListener publish pod listener
+func (n *NodeServer) publishPodListener() {}
+
 // mount mounts the volume to the target path.
 // Mount the volume to the target path with tmpfs.
 // The target path is created if it does not exist.

@@ -18,24 +18,39 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type PodListScope string
+
+const (
+	// PodListScope is the scope of the pod listener.
+	ListScopeNode PodListScope = "node"
+
+	// PodListScope is the scope of the pod listener.
+	ListScopeCluster PodListScope = "cluster"
+)
 
 // PodListenersSpec defines the desired state of PodListeners.
 type PodListenersSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// +kubebuilder:validation:Required
+	Listeners []PodListener `json:"listeners,omitempty"`
+}
 
-	// Foo is an example field of PodListeners. Edit podlisteners_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+// PodListener defines the listener configuration for a pod.
+type PodListener struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=Node;Cluster
+	// +kubebuilder:default=Cluster
+	Scope PodListScope `json:"scope,omitempty"`
+
+	// +kubebuilder:validation:Required
+	ListenerIngress *listeners.IngressAddressSpec `json:"listenerIngress,omitempty"`
 }
 
 // PodListenersStatus defines the observed state of PodListeners.
 type PodListenersStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true
