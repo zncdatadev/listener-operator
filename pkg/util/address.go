@@ -35,17 +35,18 @@ type IngressAddress struct {
 
 func GetPriorNodeAddress(node *corev1.Node) (*AddressInfo, error) {
 	for _, address := range node.Status.Addresses {
-		if address.Type == corev1.NodeExternalIP {
+		switch address.Type {
+		case corev1.NodeExternalIP:
 			return &AddressInfo{
 				Address:     address.Address,
 				AddressType: listenersv1alpha1.AddressTypeIP,
 			}, nil
-		} else if address.Type == corev1.NodeInternalIP {
+		case corev1.NodeInternalIP:
 			return &AddressInfo{
 				Address:     address.Address,
 				AddressType: listenersv1alpha1.AddressTypeIP,
 			}, nil
-		} else if address.Type == corev1.NodeHostName {
+		case corev1.NodeHostName:
 			return &AddressInfo{
 				Address:     address.Address,
 				AddressType: listenersv1alpha1.AddressTypeHostname,

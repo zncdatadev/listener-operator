@@ -185,7 +185,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 //	|-- default-address -> addresses/<address>
 func (n *NodeServer) writeData(targetPath string, data []util.IngressAddress) error {
 	if data == nil {
-		return fmt.Errorf("no data to write to target path, data is nil.")
+		return fmt.Errorf("no data to write to target path, data is nil")
 	}
 
 	log.V(1).Info("writing data to target path", "targetPath", targetPath, "data", data)
