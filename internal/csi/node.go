@@ -521,12 +521,13 @@ func (n *NodeServer) findPodVolumeNameForPVC(pod *corev1.Pod, pvcName string) (s
 			return podVolume.Name, nil
 		}
 		// Check ephemeral volume
-		if podVolume.Ephemeral != nil && podVolume.Name == pvcName {
+		if podVolume.Ephemeral != nil && pvcName == fmt.Sprintf("%s-%s", pod.Name, podVolume.Name) {
+			// Handle ephemeral volumes, where the volume name is derived from the pod name and volume name
 			return podVolume.Name, nil
 		}
 	}
 
-	return "", fmt.Errorf("no volume found for PVC %s in Pod %s/%s", pvcName, pod.Namespace, pod.Name)
+	return "", fmt.Errorf("no volume found for PVC '%s' in pod '%s/%s'", pvcName, pod.Namespace, pod.Name)
 }
 
 // determinePodListenerScope determines the PodListener scope based on listener status

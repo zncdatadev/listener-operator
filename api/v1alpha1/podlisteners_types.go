@@ -26,10 +26,10 @@ type PodListenerScope string
 
 const (
 	// PodListenerScope is the scope of the pod listener.
-	PodlistenerNodeScope PodListenerScope = "node"
+	PodlistenerNodeScope PodListenerScope = "Node"
 
 	// PodListenerScope is the scope of the pod listener.
-	PodlistenerClusterScope PodListenerScope = "cluster"
+	PodlistenerClusterScope PodListenerScope = "Cluster"
 )
 
 // PodListenersSpec defines the desired state of PodListeners.
