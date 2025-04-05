@@ -22,20 +22,20 @@ import (
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 )
 
-type PodListScope string
+type PodListenerScope string
 
 const (
-	// PodListScope is the scope of the pod listener.
-	ListScopeNode PodListScope = "node"
+	// PodListenerScope is the scope of the pod listener.
+	PodlistenerNodeScope PodListenerScope = "node"
 
-	// PodListScope is the scope of the pod listener.
-	ListScopeCluster PodListScope = "cluster"
+	// PodListenerScope is the scope of the pod listener.
+	PodlistenerClusterScope PodListenerScope = "cluster"
 )
 
 // PodListenersSpec defines the desired state of PodListeners.
 type PodListenersSpec struct {
 	// +kubebuilder:validation:Required
-	Listeners []PodListener `json:"listeners,omitempty"`
+	Listeners map[string]PodListener `json:"listeners,omitempty"`
 }
 
 // PodListener defines the listener configuration for a pod.
@@ -43,10 +43,10 @@ type PodListener struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=Node;Cluster
 	// +kubebuilder:default=Cluster
-	Scope PodListScope `json:"scope,omitempty"`
+	Scope PodListenerScope `json:"scope,omitempty"`
 
 	// +kubebuilder:validation:Required
-	ListenerIngress *listeners.IngressAddressSpec `json:"listenerIngress,omitempty"`
+	ListenerIngresses []listeners.IngressAddressSpec `json:"listenerIngresses,omitempty"`
 }
 
 // PodListenersStatus defines the observed state of PodListeners.
