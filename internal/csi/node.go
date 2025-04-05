@@ -548,7 +548,7 @@ func (n *NodeServer) buildPodListenersObject(
 	ingressAddresses []util.IngressAddress,
 ) *podListener.PodListeners {
 	// Convert to listeners.IngressAddressSpec type
-	var listenerIngresses []listeners.IngressAddressSpec
+	listenerIngresses := make([]listeners.IngressAddressSpec, 0, len(ingressAddresses))
 	for _, ingressAddress := range ingressAddresses {
 		listenerIngresses = append(listenerIngresses, listeners.IngressAddressSpec{
 			Address:     ingressAddress.Address,
