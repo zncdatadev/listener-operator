@@ -19,33 +19,36 @@ package controller
 import (
 	"context"
 
-	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 )
 
-// ListenerClassReconciler reconciles a ListenerClass object
-type ListenerClassReconciler struct {
+// PodListenersReconciler reconciles a PodListeners object
+type PodListenersReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses/finalizers,verbs=update
+// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=podlisteners,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=podlisteners/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=podlisteners/finalizers,verbs=update
 
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.15.0/pkg/reconcile
-func (r *ListenerClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
+func (r *PodListenersReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ListenerClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *PodListenersReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&listeners.ListenerClass{}).
+		For(&listenersv1alpha1.PodListeners{}).
+		Named("podlisteners").
 		Complete(r)
 }

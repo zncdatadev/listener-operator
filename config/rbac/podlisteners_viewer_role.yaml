@@ -1,0 +1,23 @@
+# permissions for end users to view podlisteners.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: listener-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: podlisteners-viewer-role
+rules:
+- apiGroups:
+  - listeners.kubedoop.dev
+  resources:
+  - podlisteners
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - listeners.kubedoop.dev
+  resources:
+  - podlisteners/status
+  verbs:
+  - get

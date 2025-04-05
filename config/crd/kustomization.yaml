@@ -4,6 +4,7 @@
 resources:
 - bases/listeners.kubedoop.dev_listenerclasses.yaml
 - bases/listeners.kubedoop.dev_listeners.yaml
+- bases/listeners.kubedoop.dev_podlisteners.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

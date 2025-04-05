@@ -6,33 +6,24 @@ spec:
   steps:
   - try:
     - apply:
-        file: ../commons/sa.yaml # no not modify anything in this file
-    - apply:
-        resource:
-          apiVersion: rbac.authorization.k8s.io/v1
-          kind: RoleBinding
-          metadata:
-            name: listener-test-role-binding
-          roleRef:
-            apiGroup: rbac.authorization.k8s.io
-            kind: Role
-            name: listener-test-role
-          subjects:
-          - kind: ServiceAccount
-            name: test
-            namespace: ($namespace) # doymaically replace the namespace when the test is run
-    - assert:
-        file: ../commons/listenercsi-assert.yaml
+        file: ../commons/sa.yaml
     - apply:
         file: pod.yaml
     - sleep:
-        duration: 10s  # wait for the pod to be ready
+        duration: 10s
     - assert:
         file: ../commons/pod-assert.yaml
+  - try:
     - apply:
         file: ../commons/servicediscovery.yaml
     - assert:
         file: listener-assert.yaml
+  - try:
+    - apply:
+        file: ../commons/podlisteners-assert.yaml
+    - assert:
+        file: ../commons/podlisteners-assert.yaml
+  - try:
     - apply:
         file: listeneringress.yaml
     - sleep:

@@ -12,6 +12,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+
 	"github.com/zncdatadev/operator-go/pkg/constants"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,6 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	podListener "github.com/zncdatadev/listener-operator/api/v1alpha1" // for pod listeners
 	"github.com/zncdatadev/listener-operator/pkg/util"
 )
 
@@ -154,6 +156,11 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 
 	data, err := n.getAddresses(ctx, listener, pod)
 	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Apply PodListener configurations to the Listener before getting addresses
+	if err := n.publishPodListener(ctx, pod, pv, listener, data); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -480,6 +487,148 @@ func (n *NodeServer) createListener(
 	}
 
 	return nil, fmt.Errorf("create listener error: %v", err)
+}
+
+// publishPodListener creates or updates PodListeners resource based on pod and listener information
+func (n *NodeServer) publishPodListener(
+	ctx context.Context,
+	pod *corev1.Pod,
+	pv *corev1.PersistentVolume,
+	listener *listeners.Listener,
+	listenerIngressAddresses []util.IngressAddress,
+) error {
+	// Find volume name corresponding to the PVC
+	volumeName, err := n.findPodVolumeNameForPVC(pod, pv.Spec.ClaimRef.Name)
+	if err != nil {
+		return err
+	}
+
+	// Determine the scope based on listener status
+	scope := n.determinePodListenerScope(listener)
+
+	// Build PodListeners object
+	podListenerObj := n.buildPodListenersObject(pod, listener, volumeName, scope, listenerIngressAddresses)
+
+	// Create or update PodListeners resource
+	return n.createOrUpdatePodListeners(ctx, podListenerObj, volumeName)
+}
+
+// findPodVolumeNameForPVC finds the volume name in the pod that corresponds to the PVC name
+func (n *NodeServer) findPodVolumeNameForPVC(pod *corev1.Pod, pvcName string) (string, error) {
+	for _, podVolume := range pod.Spec.Volumes {
+		// Check persistent volume claim
+		if podVolume.PersistentVolumeClaim != nil && podVolume.PersistentVolumeClaim.ClaimName == pvcName {
+			return podVolume.Name, nil
+		}
+		// Check ephemeral volume
+		if podVolume.Ephemeral != nil && pvcName == fmt.Sprintf("%s-%s", pod.Name, podVolume.Name) {
+			// Handle ephemeral volumes, where the volume name is derived from the pod name and volume name
+			return podVolume.Name, nil
+		}
+	}
+
+	return "", fmt.Errorf("no volume found for PVC '%s' in pod '%s/%s'", pvcName, pod.Namespace, pod.Name)
+}
+
+// determinePodListenerScope determines the PodListener scope based on listener status
+func (n *NodeServer) determinePodListenerScope(listener *listeners.Listener) podListener.PodListenerScope {
+	if len(listener.Status.NodePorts) > 0 {
+		// If NodePorts are used, set the scope to Node level
+		return podListener.PodlistenerNodeScope
+	}
+	return podListener.PodlistenerClusterScope
+}
+
+// buildPodListenersObject builds the PodListeners object
+func (n *NodeServer) buildPodListenersObject(
+	pod *corev1.Pod,
+	listener *listeners.Listener,
+	volumeName string,
+	scope podListener.PodListenerScope,
+	ingressAddresses []util.IngressAddress,
+) *podListener.PodListeners {
+	// Convert to listeners.IngressAddressSpec type
+	listenerIngresses := make([]listeners.IngressAddressSpec, 0, len(ingressAddresses))
+	for _, ingressAddress := range ingressAddresses {
+		listenerIngresses = append(listenerIngresses, listeners.IngressAddressSpec{
+			Address:     ingressAddress.Address,
+			AddressType: ingressAddress.AddressType,
+			Ports:       ingressAddress.Ports,
+		})
+	}
+
+	// Create PodListeners object
+	podListenerObj := &podListener.PodListeners{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%s", "pod", pod.UID),
+			Namespace: pod.Namespace,
+		},
+		Spec: podListener.PodListenersSpec{
+			Listeners: map[string]podListener.PodListener{
+				volumeName: {
+					Scope:             scope,
+					ListenerIngresses: listenerIngresses,
+				},
+			},
+		},
+	}
+
+	// Set controller reference
+	if err := ctrl.SetControllerReference(listener, podListenerObj, n.client.Scheme()); err != nil {
+		log.Error(err, "Failed to set controller reference")
+	}
+
+	return podListenerObj
+}
+
+// createOrUpdatePodListeners creates or updates PodListeners resource
+func (n *NodeServer) createOrUpdatePodListeners(
+	ctx context.Context,
+	podListenerObj *podListener.PodListeners,
+	volumeName string,
+) error {
+	// Check if PodListeners resource already exists
+	existingPodListener := &podListener.PodListeners{}
+	err := n.client.Get(ctx, client.ObjectKeyFromObject(podListenerObj), existingPodListener)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Does not exist, create new one
+			if err := n.client.Create(ctx, podListenerObj); err != nil {
+				return fmt.Errorf("failed to create PodListeners: %v", err)
+			}
+			log.V(1).Info("Created new PodListeners",
+				"name", podListenerObj.Name,
+				"namespace", podListenerObj.Namespace,
+				"volume", volumeName)
+			return nil
+		}
+		// Error getting existing resource
+		return fmt.Errorf("failed to get existing PodListeners: %v", err)
+	}
+
+	// Resource already exists, merge and update
+	originalPodListener := existingPodListener.DeepCopy()
+
+	// Ensure Listeners map is initialized
+	if existingPodListener.Spec.Listeners == nil {
+		existingPodListener.Spec.Listeners = make(map[string]podListener.PodListener)
+	}
+
+	// Update or add listener configuration for specified volume
+	existingPodListener.Spec.Listeners[volumeName] = podListenerObj.Spec.Listeners[volumeName]
+
+	// Use Patch to update resource
+	if err := n.client.Patch(ctx, existingPodListener, client.MergeFrom(originalPodListener)); err != nil {
+		return fmt.Errorf("failed to update PodListeners: %v", err)
+	}
+
+	log.V(1).Info("Updated existing PodListeners",
+		"name", existingPodListener.Name,
+		"namespace", existingPodListener.Namespace,
+		"volume", volumeName)
+
+	return nil
 }
 
 // mount mounts the volume to the target path.

@@ -1,0 +1,65 @@
+######################### example #######################
+# apiVersion: listeners.kubedoop.dev/v1alpha1
+# kind: PodListeners
+# metadata:
+#   creationTimestamp: "2025-04-05T11:41:01Z"
+#   generation: 1
+#   name: pod-03e9d52a-9b26-499c-93fe-43023ad8aecd
+#   namespace: chainsaw-positive-cat
+#   ownerReferences:
+#   - apiVersion: listeners.kubedoop.dev/v1alpha1
+#     blockOwnerDeletion: true
+#     controller: true
+#     kind: Listener
+#     name: caddy-listener-volume
+#     uid: 543ab161-7704-429a-b949-9ba09ebac6b0
+#   resourceVersion: "6412"
+#   uid: 34bfcd60-1189-4e29-a656-ba12dcd38b67
+# spec:
+#   listeners:
+#     listener-volume:
+#       listenerIngresses:
+#       - address: caddy-listener-volume.chainsaw-positive-cat.svc.cluster.local
+#         addressType: Hostname
+#         ports:
+#           http: 8080
+#       scope: Cluster
+######################### end example #######################
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podlisteners-assert
+  labels:
+    name: podlisteners-assert
+spec:
+  serviceAccountName: test
+  restartPolicy: Never
+  containers:
+  - name: podlisteners-assert
+    image: quay.io/zncdatadev/tools:1.0.0-kubedoop0.0.0-dev
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+    command:
+    - sh
+    - -c
+    - |
+      set -ex
+
+      POD_NAME=caddy
+      echo "get pod uuid"
+      POD_UUID=$(kubectl get pod ${POD_NAME} -o jsonpath='{.metadata.uid}')
+
+      POD_LISTENERS_NAME="pod-${POD_UUID}"
+
+      echo "checking if podlisteners exist"
+      if kubectl get podlisteners ${POD_LISTENERS_NAME} &> /dev/null; then
+        echo "✅ Successfully found PodListeners: ${POD_LISTENERS_NAME}"
+        exit 0
+      else
+        echo "❌ Error: PodListeners ${POD_LISTENERS_NAME} not found" >&2
+        exit 1
+      fi
+status:
+  phase: Succeeded
