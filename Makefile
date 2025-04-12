@@ -101,6 +101,7 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 
 PLATFORMS ?= linux/arm64,linux/amd64
 CSIDRIVER_IMG ?= ${REGISTRY}/listener-csi-driver:$(VERSION)
+BUILDX_METADATA_FILE ?= docker-digests.json	# The file to store the digests of the images built by buildx
 
 # csi build variables
 BUILD_TIMESTAMP := $$(date +%Y-%m-%d-%H:%M)
@@ -140,7 +141,7 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' build/Dockerfile > Dockerfile.cross
 	- $(CONTAINER_TOOL) buildx create --name $(PROJECT_NAME)-builder
 	$(CONTAINER_TOOL) buildx use $(PROJECT_NAME)-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} --metadata-file ${BUILDX_METADATA_FILE} -f Dockerfile.cross .
 	- $(CONTAINER_TOOL) buildx rm $(PROJECT_NAME)-builder
 	rm Dockerfile.cross
 
