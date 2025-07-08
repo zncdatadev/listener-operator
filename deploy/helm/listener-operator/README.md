@@ -19,9 +19,7 @@ please use `kubectl` to upgrade CRDs manually from [templates/crds](templates/cr
 To install the chart with the release name `listener-operator`:
 
 ```bash
-helm repo add kubedoop https://zncdatadev.github.io/kubedoop-helm-charts/
-
-helm install listener-operator kubedoop/listener-operator
+helm install listener-operator oci://quay.io/kubedoopcharts/listener-operator
 ```
 
 ## Usage
