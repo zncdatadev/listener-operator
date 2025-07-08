@@ -15,7 +15,7 @@ together seamlessly. Based on Kubernetes, it runs everywhere – on prem or in t
 
 ### Install Kubedoop Listener Operator
 
-> Please make sure helm version is v3.0.0+
+> Please make sure helm version is v3.8.0+
 
 ```bash
 helm install listener-operator oci://quay.io/kubedoopcharts/listener-operator
