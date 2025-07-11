@@ -13,24 +13,12 @@ together seamlessly. Based on Kubernetes, it runs everywhere – on prem or in t
 
 ## Quick Start
 
-### Add helm repository
+### Install Kubedoop Listener Operator
 
-> Please make sure helm version is v3.0.0+
-
-```bash
-helm repo add kubedoop https://zncdatadev.github.io/kubedoop-helm-charts/
-```
-
-### Add listener-operator
+> Please make sure helm version is v3.8.0+
 
 ```bash
-helm install listener-operator kubedoop/listener-operator
-```
-
-### Deploy listener operator
-
-```bash
-kubectl apply -f config/samples
+helm install listener-operator oci://quay.io/kubedoopcharts/listener-operator
 ```
 
 ## Kubedoop Data Platform Operators
