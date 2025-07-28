@@ -107,7 +107,7 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&listeners.Listener{}).
-		Watches(&discoveryv1.EndpointSlice{}, handler.TypedEnqueueRequestsFromMapFunc(r.handleEndpointsChanges)).
+		Watches(&discoveryv1.EndpointSlice{}, handler.TypedEnqueueRequestsFromMapFunc(r.handleEndpointSliceChanges)).
 		Watches(&corev1.PersistentVolume{}, handler.EnqueueRequestsFromMapFunc(r.handlePVChanges)).
 		Watches(&listeners.ListenerClass{}, handler.EnqueueRequestsFromMapFunc(r.handleListenerClassChanges)).
 		Complete(r)
@@ -135,8 +135,16 @@ func (r *ListenerReconciler) handleListenerClassChanges(ctx context.Context, obj
 	return requests
 }
 
-func (r *ListenerReconciler) handleEndpointsChanges(ctx context.Context, obj client.Object) []ctrl.Request {
-	endpoints := obj.(*discoveryv1.EndpointSlice)
+func (r *ListenerReconciler) handleEndpointSliceChanges(ctx context.Context, obj client.Object) []ctrl.Request {
+	endpointSlice := obj.(*discoveryv1.EndpointSlice)
+
+	// Get the service name from EndpointSlice labels
+	serviceName, ok := endpointSlice.Labels["kubernetes.io/service-name"]
+	if !ok {
+		logger.V(1).Info("EndpointSlice has no kubernetes.io/service-name label", "namespace", endpointSlice.Namespace, "name", endpointSlice.Name)
+		return nil
+	}
+
 	list := &listeners.ListenerList{}
 	if err := r.List(ctx, list); err != nil {
 		return nil
@@ -144,7 +152,8 @@ func (r *ListenerReconciler) handleEndpointsChanges(ctx context.Context, obj cli
 
 	requests := make([]ctrl.Request, 0)
 	for _, listener := range list.Items {
-		if listener.Status.ServiceName == endpoints.Name {
+		// Match by service name and namespace
+		if listener.Status.ServiceName == serviceName && listener.Namespace == endpointSlice.Namespace {
 			requests = append(requests, reconcile.Request{
 				NamespacedName: client.ObjectKey{
 					Name:      listener.Name,
