@@ -235,11 +235,9 @@ func (s *ServiceAddress) getNodesAddresses(ctx context.Context) ([]util.AddressI
 }
 
 func (s *ServiceAddress) getNodeNames(ctx context.Context) ([]string, error) {
-	nodeNames := make([]string, 0)
-
 	endpointSliceList := &discoveryv1.EndpointSliceList{}
-	if err := s.client.List(ctx, endpointSliceList, client.InNamespace(s.service.Namespace), client.MatchingLabels(s.service.Spec.Selector)); err != nil {
-		return nodeNames, fmt.Errorf("failed to list endpoints for service %s/%s: %w", s.service.Namespace, s.service.Name, err)
+	if err := s.client.List(ctx, endpointSliceList, client.InNamespace(s.service.Namespace), client.MatchingLabels{"kubernetes.io/service-name": s.service.Name}); err != nil {
+		return nil, fmt.Errorf("failed to list endpoints for service %s/%s: %w", s.service.Namespace, s.service.Name, err)
 	}
 
 	// Only when the pods associated with the service are available, endpoints will have a value, otherwise it will be empty.
@@ -247,9 +245,10 @@ func (s *ServiceAddress) getNodeNames(ctx context.Context) ([]string, error) {
 	// When endpoints are ready, this method will be called again to retrieve the addresses.
 	if len(endpointSliceList.Items) == 0 {
 		logger.V(1).Info("no endpoints found for service", "service", s.Name(), "namespace", s.Namespace())
-		return nodeNames, nil
+		return nil, nil
 	}
 
+	nodeNames := make([]string, 0)
 	for _, endpointSlice := range endpointSliceList.Items {
 		for _, endpoint := range endpointSlice.Endpoints {
 			if endpoint.NodeName != nil {
