@@ -23,6 +23,7 @@ import (
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"github.com/zncdatadev/operator-go/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
@@ -50,7 +51,7 @@ type ListenerReconciler struct {
 // +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses,verbs=get;list;watch
 // +kubebuilder:rbac:groups=listeners.kubedoop.dev,resources=listenerclasses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=endpoints,verbs=get;list;watch
+// +kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch
@@ -106,7 +107,7 @@ func (r *ListenerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *ListenerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&listeners.Listener{}).
-		Watches(&corev1.Endpoints{}, handler.TypedEnqueueRequestsFromMapFunc(r.handleEndpointsChanges)).
+		Watches(&discoveryv1.EndpointSlice{}, handler.TypedEnqueueRequestsFromMapFunc(r.handleEndpointsChanges)).
 		Watches(&corev1.PersistentVolume{}, handler.EnqueueRequestsFromMapFunc(r.handlePVChanges)).
 		Watches(&listeners.ListenerClass{}, handler.EnqueueRequestsFromMapFunc(r.handleListenerClassChanges)).
 		Complete(r)
@@ -135,7 +136,7 @@ func (r *ListenerReconciler) handleListenerClassChanges(ctx context.Context, obj
 }
 
 func (r *ListenerReconciler) handleEndpointsChanges(ctx context.Context, obj client.Object) []ctrl.Request {
-	endpoints := obj.(*corev1.Endpoints)
+	endpoints := obj.(*discoveryv1.EndpointSlice)
 	list := &listeners.ListenerList{}
 	if err := r.List(ctx, list); err != nil {
 		return nil
