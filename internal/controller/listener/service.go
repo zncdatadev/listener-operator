@@ -9,6 +9,7 @@ import (
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	operatorclient "github.com/zncdatadev/operator-go/pkg/client"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -234,24 +235,27 @@ func (s *ServiceAddress) getNodesAddresses(ctx context.Context) ([]util.AddressI
 }
 
 func (s *ServiceAddress) getNodeNames(ctx context.Context) ([]string, error) {
-	nodeNames := make([]string, 0)
-
-	endpoints := &corev1.Endpoints{}
-	if err := s.client.Get(ctx, client.ObjectKeyFromObject(s.service), endpoints); err != nil {
-		return nodeNames, err
+	endpointSliceList := &discoveryv1.EndpointSliceList{}
+	if err := s.client.List(ctx, endpointSliceList, client.InNamespace(s.service.Namespace), client.MatchingLabels{"kubernetes.io/service-name": s.service.Name}); err != nil {
+		return nil, fmt.Errorf("failed to list endpoints for service %s/%s: %w", s.service.Namespace, s.service.Name, err)
 	}
 
 	// Only when the pods associated with the service are available, endpoints will have a value, otherwise it will be empty.
 	// Return an empty address when endpoints are not ready.
 	// When endpoints are ready, this method will be called again to retrieve the addresses.
-	if len(endpoints.Subsets) == 0 {
-		logger.V(1).Info("endpoints is not ready", "service", s.Name(), "namespace", s.Namespace())
-		return nodeNames, nil
+	if len(endpointSliceList.Items) == 0 {
+		logger.V(1).Info("no endpoints found for service", "service", s.Name(), "namespace", s.Namespace())
+		return nil, nil
 	}
 
-	for _, subset := range endpoints.Subsets {
-		for _, address := range subset.Addresses {
-			nodeNames = append(nodeNames, *address.NodeName)
+	nodeNames := make([]string, 0)
+	for _, endpointSlice := range endpointSliceList.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.NodeName != nil {
+				nodeNames = append(nodeNames, *endpoint.NodeName)
+			} else {
+				logger.V(1).Info("endpoint has no node name", "endpoint", endpoint, "service", s.Name(), "namespace", s.Namespace())
+			}
 		}
 	}
 
