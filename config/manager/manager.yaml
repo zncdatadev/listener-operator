@@ -21,7 +21,7 @@ metadata:
     app.kubernetes.io/name: listener-operator
     app.kubernetes.io/instance: controller-manager
     app.kubernetes.io/component: manager
-    app.kubernetes.io/created-by: operator-lifecycle-manager
+    app.kubernetes.io/created-by: listener-operator
     app.kubernetes.io/part-of: listener-operator
     app.kubernetes.io/managed-by: kustomize
 spec:

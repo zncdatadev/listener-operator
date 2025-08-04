@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/zncdatadev/listener-operator/internal/csi"
+	"github.com/zncdatadev/listener-operator/internal/util/version"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -35,12 +38,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
-	"github.com/zncdatadev/listener-operator/internal/controller"
-	listenercontroller "github.com/zncdatadev/listener-operator/internal/controller/listener"
-	"github.com/zncdatadev/listener-operator/internal/util/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -58,6 +57,8 @@ func init() {
 }
 
 func main() {
+	var endpoint string
+	var nodeID string
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -65,6 +66,8 @@ func main() {
 	var enableHTTP2 bool
 	var tlsOpts []func(*tls.Config)
 	var versionInfo bool
+	flag.StringVar(&endpoint, "endpoint", "unix://tmp/csi.sock", "CSI endpoint")
+	flag.StringVar(&nodeID, "nodeid", "", "node id")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -80,17 +83,17 @@ func main() {
 	opts := zap.Options{
 		Development: true,
 	}
+
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	if versionInfo {
-		version := version.NewAppInfo("listener-operator").String()
+		version := version.NewAppInfo(csi.DefaultDriverName).String()
 		fmt.Println(version)
 		os.Exit(0)
 	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
 	// prevent from being vulnerable to the HTTP/2 Stream Cancellation and
@@ -101,14 +104,9 @@ func main() {
 		setupLog.Info("disabling http/2")
 		c.NextProtos = []string{"http/1.1"}
 	}
-
 	if !enableHTTP2 {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
-
-	webhookServer := webhook.NewServer(webhook.Options{
-		TLSOpts: tlsOpts,
-	})
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
@@ -131,14 +129,12 @@ func main() {
 		// generate self-signed certificates for the metrics server. While convenient for development and testing,
 		// this setup is not recommended for production.
 	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		WebhookServer:          webhookServer,
-		LeaderElectionID:       "0254a9f2.kubedoop.dev",
+		LeaderElectionID:       "6a34b29b.kubedoop.dev",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
 		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
@@ -156,30 +152,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.ListenerClassReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ListenerClass")
-		os.Exit(1)
-	}
-	if err = (&listenercontroller.ListenerReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Listener")
-		os.Exit(1)
-	}
-
-	if err = (&controller.PodListenersReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PodListeners")
-		os.Exit(1)
-	}
-	// +kubebuilder:scaffold:builder
-
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
@@ -189,9 +161,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
+	ctx := ctrl.SetupSignalHandler()
+
+	go func() {
+		setupLog.Info("starting manager")
+		if err := mgr.Start(ctx); err != nil {
+			setupLog.Error(err, "problem running manager")
+			os.Exit(1)
+		}
+	}()
+
+	setupLog.Info("starting driver")
+	driver := csi.NewDriver(nodeID, endpoint, mgr.GetClient())
+
+	err = driver.Run(ctx)
+	if err != nil {
+		fmt.Println("Failed to run driver", "error", err.Error())
 		os.Exit(1)
 	}
 }

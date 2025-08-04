@@ -70,7 +70,7 @@ func (c *ControllerServer) CreateVolume(ctx context.Context, request *csi.Create
 	requiredCap := request.CapacityRange.GetRequiredBytes()
 
 	if request.Parameters["listenerFinalizer"] == "true" {
-		log.V(1).Info("volume is listener finalizer", "volume", request.Name)
+		logger.V(1).Info("volume is listener finalizer", "volume", request.Name)
 
 	}
 
@@ -126,16 +126,16 @@ func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeReques
 			preferred := req.GetPreferred()
 			if len(preferred) > 0 {
 				// Only return the first topology preference
-				log.V(1).Info("using first topology preference for NodePort service",
+				logger.V(1).Info("using first topology preference for NodePort service",
 					"topology", preferred[0])
 				return []*csi.Topology{preferred[0]}
 			}
 		}
-		log.V(1).Info("no accessibility preferences specified for NodePort service")
+		logger.V(1).Info("no accessibility preferences specified for NodePort service")
 	}
 
 	// For other service types or unspecified service type, no topology restrictions
-	log.V(1).Info("no topology restrictions required", "serviceType", listenerClass.Spec.ServiceType)
+	logger.V(1).Info("no topology restrictions required", "serviceType", listenerClass.Spec.ServiceType)
 	return []*csi.Topology{}
 }
 
@@ -174,7 +174,7 @@ func (c *ControllerServer) getListenerClass(ctx context.Context, volumeContext m
 			return nil, fmt.Errorf("get listener class from listener error: %v", err)
 		}
 
-		log.V(1).Info("got listener class from listener", "listener", listenerName, "namespace", namespace, "class", listenerClass.Name)
+		logger.V(1).Info("got listener class from listener", "listener", listenerName, "namespace", namespace, "class", listenerClass.Name)
 		return listenerClass, nil
 	}
 
@@ -186,7 +186,7 @@ func (c *ControllerServer) getListenerClass(ctx context.Context, volumeContext m
 			return nil, fmt.Errorf("get listener class error: %v", err)
 		}
 
-		log.V(1).Info("got listener class directly", "class", className, "namespace", namespace)
+		logger.V(1).Info("got listener class directly", "class", className, "namespace", namespace)
 		return listenerClass, nil
 	}
 
@@ -223,7 +223,7 @@ func (c *ControllerServer) getVolumeContext(ctx context.Context, params *createV
 	}
 
 	annotations := pvc.GetAnnotations()
-	log.V(1).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
+	logger.V(1).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
 
 	// check only one of them exists
 	_, classNameExists := annotations[constants.AnnotationListenersClass]
@@ -248,7 +248,7 @@ func (c *ControllerServer) DeleteVolume(ctx context.Context, request *csi.Delete
 	}
 
 	if !dynamic {
-		log.V(1).Info("Volume is not dynamic, skip delete volume")
+		logger.V(1).Info("Volume is not dynamic, skip delete volume")
 		return &csi.DeleteVolumeResponse{}, nil
 	}
 
