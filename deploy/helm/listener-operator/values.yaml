@@ -1,6 +1,28 @@
-
 nameOverride: ""
 fullnameOverride: ""
+
+image:
+  pullSecrets: []
+  listenerOperator:
+    repository: quay.io/zncdatadev/listener-operator
+    tag: 0.0.0-dev
+    pullPolicy: IfNotPresent
+  csiDriver:
+    repository: quay.io/zncdatadev/listener-csi-driver
+    tag: 0.0.0-dev
+    pullPolicy: IfNotPresent
+  csiProvisioner:
+    repository: registry.k8s.io/sig-storage/csi-provisioner
+    tag: v5.1.0
+    pullPolicy: IfNotPresent
+  csiNodeDriverRegistrar:
+    repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
+    tag: v2.12.0
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    repository: registry.k8s.io/sig-storage/livenessprobe
+    tag: v2.14.0
+    pullPolicy: IfNotPresent
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -15,20 +37,16 @@ serviceAccount:
 kubeletDir: /var/lib/kubelet
 
 csiController:
-  # image:
-  #   repository: quay.io/zncdatadev/secret-csi-driver
-  #   # tag:
-  #   pullPolicy: IfNotPresent
   logLevel: 2
   # Number of controller replicas
   replicas: 1
   # Resources of the CSI controller container
   resources:
     requests:
-      cpu: 200m
+      cpu: 10m
       memory: 64Mi
     limits:
-      cpu: 500m
+      cpu: 523m
       memory: 128Mi
   nodeSelector: {}
   tolerations: []
@@ -40,18 +58,14 @@ csiController:
       - ALL
 
 csiNode:
-  # image:
-  #   repository: quay.io/zncdatadev/secret-csi-driver
-  #   # tag:
-  #   pullPolicy: IfNotPresent
   logLevel: 2
   # Resources of the CSI node container
   resources:
     requests:
-      cpu: 200m
+      cpu: 10m
       memory: 64Mi
     limits:
-      cpu: 500m
+      cpu: 512m
       memory: 128Mi
   nodeSelector: {}
   tolerations: []
@@ -69,23 +83,15 @@ csiNode:
 
 csiProvisioner:
   logLevel: 2
-  image:
-    repository: registry.k8s.io/sig-storage/csi-provisioner
-    tag: v5.1.0
-    pullPolicy: IfNotPresent
   resources:
     requests:
-      cpu: 100m
-      memory: 32Mi
-    limits:
-      cpu: 200m
+      cpu: 10m
       memory: 64Mi
+    limits:
+      cpu: 128m
+      memory: 128Mi
 csiNodeDriverRegistrar:
   logLevel: 2
-  image:
-    repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
-    tag: v2.12.0
-    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: 100m
@@ -95,17 +101,13 @@ csiNodeDriverRegistrar:
       memory: 32Mi
 livenessProbe:
   logLevel: 2
-  image:
-    repository: registry.k8s.io/sig-storage/livenessprobe
-    tag: v2.14.0
-    pullPolicy: IfNotPresent
   resources:
     requests:
-      cpu: 100m
+      cpu: 10m
       memory: 32Mi
     limits:
-      cpu: 200m
-      memory: 32Mi
+      cpu: 128m
+      memory: 64Mi
 
 
 podSecurityContext:
@@ -117,6 +119,7 @@ podSecurityContext:
 
 controller:
   replicas: 1
+  logLevel: 2
   resources:
     # Resource requests and limits for the controller pod
     limits:

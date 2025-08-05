@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: {{ include "operator.fullname" . }}-csi-controller
   labels:
@@ -31,15 +31,8 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "operator.appname" . }}-csi-controller
-          {{- if .Values.csiController.image }}
-          image: "{{ .Values.csiController.image.repository }}:{{ .Values.csiController.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.csiController.image.pullPolicy }}
-          {{ else }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- end }}
-          resources:
-            {{- .Values.csiDriver.resources | toYaml | nindent 12 }}
+          image: "{{ .Values.image.csiDriver.repository }}:{{ .Values.image.csiDriver.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: "{{ .Values.image.csiDriver.pullPolicy }}"
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -49,13 +42,20 @@ spec:
                   apiVersion: v1
                   fieldPath: spec.nodeName
           args:
-            - -endpoint=$(ADDRESS)
-            - -nodeid=$(NODE_NAME)
-            - -zap-log-level={{ .Values.csiController.logLevel | default 2 }}
+            - --leader-elect
+            - --health-probe-bind-address=:8081
+            - --endpoint=$(ADDRESS)
+            - --nodeid=$(NODE_NAME)
+            - --zap-log-level={{ .Values.csiController.logLevel | default 2 }}
+          resources:
+            {{- .Values.csiNode.resources | toYaml | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 9809
+              port: 8081
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 10
@@ -63,18 +63,17 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 9809
+              port: 8081
             initialDelaySeconds: 5
             timeoutSeconds: 3
             periodSeconds: 5
+            failureThreshold: 3
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
         - name: csi-provisioner
-          image: "{{ .Values.csiProvisioner.image.repository }}:{{ .Values.csiProvisioner.image.tag }}"
-          imagePullPolicy: {{ .Values.csiProvisioner.image.pullPolicy }}
-          resources:
-            {{- .Values.csiProvisioner.resources | toYaml | nindent 12 }}
+          image: "{{ .Values.image.csiProvisioner.repository }}:{{ .Values.image.csiProvisioner.tag }}"
+          imagePullPolicy: {{ .Values.image.csiProvisioner.pullPolicy }}
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -86,22 +85,24 @@ spec:
             - --timeout=1200s
             - --retry-interval-max=30m
             - --v={{ .Values.csiProvisioner.logLevel | default 2 }}
+          resources:
+            {{- .Values.csiProvisioner.resources | toYaml | nindent 12 }}
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
         - name: liveness-probe
-          image: "{{ .Values.livenessProbe.image.repository }}:{{ .Values.livenessProbe.image.tag }}"
-          imagePullPolicy: {{ .Values.livenessProbe.image.pullPolicy }}
-          resources:
-            {{- .Values.livenessProbe.resources | toYaml | nindent 12 }}
+          image: "{{ .Values.image.livenessProbe.repository }}:{{ .Values.image.livenessProbe.tag }}"
+          imagePullPolicy: {{ .Values.image.livenessProbe.pullPolicy }}
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
           args:
             - --csi-address=$(ADDRESS)
-            - --health-port=9809
+            - --health-port=9808
             - --probe-timeout=3s
             - --v={{ .Values.livenessProbe.logLevel | default 2 }}
+          resources:
+            {{- .Values.livenessProbe.resources | toYaml | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /healthz

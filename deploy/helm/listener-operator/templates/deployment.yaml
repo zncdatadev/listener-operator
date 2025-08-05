@@ -27,21 +27,25 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "operator.serviceAccountName" . }}-controller
+      serviceAccountName: {{ include "operator.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "operator.appname" . }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.image.listenerOperator.repository }}:{{ .Values.image.listenerOperator.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.listenerOperator.pullPolicy | default "IfNotPresent" }}
+          args:
+            - --leader-elect
+            - --health-probe-bind-address=:8081
+            - --zap-log-level={{ .Values.controller.logLevel | default 2 }}
           resources:
             {{- toYaml .Values.controller.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 9809
+              port: 8081
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 10
@@ -49,10 +53,11 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 9809
+              port: 8081
             initialDelaySeconds: 5
             timeoutSeconds: 3
             periodSeconds: 5
+            failureThreshold: 5
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

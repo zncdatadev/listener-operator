@@ -31,15 +31,8 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ include "operator.appname" . }}-csi-node
-          {{- if .Values.csiNode.image }}
-          image: "{{ .Values.csiNode.image.repository }}:{{ .Values.csiNode.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.csiNode.image.pullPolicy }}
-          {{ else }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- end }}
-          resources:
-            {{- .Values.csiNode.resources | toYaml | nindent 12 }}
+          image: "{{ .Values.image.csiDriver.repository }}:{{ .Values.image.csiDriver.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.csiDriver.pullPolicy }}
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -49,24 +42,28 @@ spec:
                   apiVersion: v1
                   fieldPath: spec.nodeName
           args:
+            - --health-probe-bind-address=:8081
             - -endpoint=$(ADDRESS)
             - -nodeid=$(NODE_NAME)
             - -zap-log-level={{ .Values.csiNode.logLevel | default 2 }}
+          resources:
+            {{- .Values.csiNode.resources | toYaml | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 9808
+              port: 8081
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 10
             failureThreshold: 5
           readinessProbe:
             httpGet:
-              path: /healthz
-              port: 9808
+              path: /readyz
+              port: 8081
             initialDelaySeconds: 5
             timeoutSeconds: 3
             periodSeconds: 5
+            failureThreshold: 3
           securityContext:
             {{- toYaml .Values.csiNode.securityContext | nindent 12 }}
           volumeMounts:
@@ -76,12 +73,8 @@ spec:
               mountPath: {{ .Values.kubeletDir }}/pods
               mountPropagation: Bidirectional
         - name: node-driver-registrar
-          image: "{{ .Values.csiNodeDriverRegistrar.image.repository }}:{{ .Values.csiNodeDriverRegistrar.image.tag }}"
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          imagePullPolicy: {{ .Values.csiNodeDriverRegistrar.image.pullPolicy }}
-          resources:
-            {{- .Values.csiNodeDriverRegistrar.resources | toYaml | nindent 12 }}
+          image: "{{ .Values.image.csiNodeDriverRegistrar.repository }}:{{ .Values.image.csiNodeDriverRegistrar.tag }}"
+          imagePullPolicy: {{ .Values.image.csiNodeDriverRegistrar.pullPolicy }}
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -91,6 +84,8 @@ spec:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
             - --v={{ .Values.csiNodeDriverRegistrar.logLevel | default 2 }}
+          resources:
+            {{- .Values.csiNodeDriverRegistrar.resources | toYaml | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -100,10 +95,8 @@ spec:
             - name: socket-dir
               mountPath: /csi
         - name: liveness-probe
-          image: {{ .Values.livenessProbe.image.repository }}:{{ .Values.livenessProbe.image.tag }}
-          imagePullPolicy: {{ .Values.livenessProbe.image.pullPolicy }}
-          resources:
-            {{- .Values.livenessProbe.resources | toYaml | nindent 12 }}
+          image: {{ .Values.image.livenessProbe.repository }}:{{ .Values.image.livenessProbe.tag }}
+          imagePullPolicy: {{ .Values.image.livenessProbe.pullPolicy }}
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -111,6 +104,8 @@ spec:
             - --csi-address=$(ADDRESS)
             - --health-port=9808
             - --v={{ .Values.livenessProbe.logLevel | default 2 }}
+          resources:
+            {{- .Values.livenessProbe.resources | toYaml | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
