@@ -15,14 +15,12 @@ var (
 )
 
 func getLogLevel(method string) int {
-	v := ctrl.Log.GetV()
-
 	if method == "/csi.v1.Identity/Probe" ||
 		method == "/csi.v1.Node/NodeGetCapabilities" ||
 		method == "/csi.v1.Node/NodeGetVolumeStats" {
 		return 8
 	}
-	return v
+	return ctrl.Log.GetV()
 }
 
 func LogGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
@@ -36,7 +34,7 @@ func LogGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 		if level >= 5 {
 			stack := debug.Stack()
 			errStack := fmt.Errorf("\n%s", stack)
-			log.Error(err, "GRPC called error", errStack.Error())
+			log.Error(err, "GRPC called error", "stack", errStack.Error())
 		}
 	} else {
 		log.V(level).Info("gRPC called", "method", info.FullMethod, "response", protosanitizer.StripSecrets(resp))
