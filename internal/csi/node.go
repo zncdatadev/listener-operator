@@ -220,7 +220,7 @@ func (n *NodeServer) writeData(targetPath string, data []util.IngressAddress) er
 			logger.Error(err, "write address to listener address path error", "path", listenerAddressPath)
 			return err
 		}
-		logger.V(1).Info("writed address to listener address path", "address", listenerData.Address, "path", listenerAddressPath)
+		logger.V(1).Info("wrote address to listener address path", "address", listenerData.Address, "path", listenerAddressPath)
 		defaultAddressPath = listenerAddressPath
 	}
 
@@ -237,7 +237,7 @@ func (n *NodeServer) writeAddress(targetPath string, data util.IngressAddress) e
 		logger.Error(err, "write address to target path error", "path", targetPath)
 		return err
 	}
-	logger.V(1).Info("writed address to target path", "address", data.Address)
+	logger.V(1).Info("wrote address to target path", "address", data.Address)
 
 	listenerAddressPortPath := filepath.Join(targetPath, "ports")
 	if err := os.MkdirAll(listenerAddressPortPath, 0755); err != nil {
@@ -250,7 +250,7 @@ func (n *NodeServer) writeAddress(targetPath string, data util.IngressAddress) e
 		if err := os.WriteFile(filepath.Join(listenerAddressPortPath, name), []byte(portStr), fs.FileMode(0644)); err != nil {
 			return err
 		}
-		logger.V(1).Info("writed port to target path", "port", port, "address", data.Address)
+		logger.V(1).Info("wrote port to target path", "port", port, "address", data.Address)
 	}
 	return nil
 }
