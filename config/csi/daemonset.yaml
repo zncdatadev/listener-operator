@@ -59,14 +59,18 @@ spec:
             httpGet:
               path: /healthz
               port: 8081
-            initialDelaySeconds: 15
-            periodSeconds: 20
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /readyz
               port: 8081
             initialDelaySeconds: 5
-            periodSeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
           volumeMounts:
             - name: socket-dir
               mountPath: /csi
@@ -76,13 +80,6 @@ spec:
         - name: node-driver-registrar
           image: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.12.0"
           imagePullPolicy: IfNotPresent
-          resources:
-            limits:
-              cpu: 512m
-              memory: 128Mi
-            requests:
-              cpu: 10m
-              memory: 64Mi
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -92,6 +89,13 @@ spec:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
             - --v=2
+          resources:
+            limits:
+              cpu: 512m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -103,13 +107,6 @@ spec:
         - name: liveness-probe
           image: "registry.k8s.io/sig-storage/livenessprobe:v2.14.0"
           imagePullPolicy: IfNotPresent
-          resources:
-            limits:
-              cpu: 128m
-              memory: 64Mi
-            requests:
-              cpu: 10m
-              memory: 64Mi
           env:
             - name: ADDRESS
               value: unix:///csi/csi.sock
@@ -121,6 +118,13 @@ spec:
           ports:
             - containerPort: 9808
               name: healthz
+          resources:
+            limits:
+              cpu: 128m
+              memory: 64Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
