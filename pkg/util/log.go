@@ -33,8 +33,8 @@ func LogGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 		log.Error(err, "RPC called error", "method", info.FullMethod)
 		if level >= 5 {
 			stack := debug.Stack()
-			errStack := fmt.Errorf("\n%s", stack)
-			log.Error(err, "GRPC called error", "stack", errStack.Error())
+			errStack := fmt.Sprintf("\n%s", stack)
+			log.Error(err, "GRPC called error", errStack)
 		}
 	} else {
 		log.V(level).Info("gRPC called", "method", info.FullMethod, "response", protosanitizer.StripSecrets(resp))
