@@ -104,7 +104,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	}
 
 	volumeID := request.GetVolumeId()
-	log.Info("publishing volume", "volumeID", volumeID, "targetPath", targetPath)
+	logger.Info("publishing volume", "volumeID", volumeID, "targetPath", targetPath)
 
 	// get the volume context
 	// Default, volume context contains data:
@@ -124,7 +124,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 	//   - listeners.kubedoop.dev/class: <class-name>	# required
 	//   - listeners.kubedoop.dev/name: <name>	# optional
 	volumeContext := newVolumeContextFromMap(request.GetVolumeContext())
-	log.V(1).Info("volume context", "volumeID", volumeID, "volumeContext", volumeContext)
+	logger.V(1).Info("volume context", "volumeID", volumeID, "volumeContext", volumeContext)
 
 	// get the pv
 	pv, err := n.getPV(ctx, request.GetVolumeId())
@@ -174,7 +174,7 @@ func (n *NodeServer) NodePublishVolume(ctx context.Context, request *csi.NodePub
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Info("Volume published", "volumeID", volumeID, "targetPath", targetPath)
+	logger.Info("Volume published", "volumeID", volumeID, "targetPath", targetPath)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -195,15 +195,15 @@ func (n *NodeServer) writeData(targetPath string, data []util.IngressAddress) er
 		return fmt.Errorf("no data to write to target path, data is nil")
 	}
 
-	log.V(1).Info("writing data to target path", "targetPath", targetPath, "data", data)
+	logger.V(1).Info("writing data to target path", "targetPath", targetPath, "data", data)
 
 	// mkdir addresses path
 	addressesPath := filepath.Join(targetPath, "addresses")
 	if err := os.MkdirAll(addressesPath, 0755); err != nil {
-		log.Error(err, "create addresses path error", "path", addressesPath)
+		logger.Error(err, "create addresses path error", "path", addressesPath)
 		return err
 	}
-	log.V(1).Info("created addresses path", "path", addressesPath)
+	logger.V(1).Info("created addresses path", "path", addressesPath)
 
 	var defaultAddressPath string
 
@@ -211,16 +211,16 @@ func (n *NodeServer) writeData(targetPath string, data []util.IngressAddress) er
 		// mkdir address path
 		listenerAddressPath := filepath.Join(addressesPath, listenerData.Address)
 		if err := os.MkdirAll(listenerAddressPath, 0755); err != nil {
-			log.Error(err, "create listener address path error", "path", listenerAddressPath)
+			logger.Error(err, "create listener address path error", "path", listenerAddressPath)
 			return err
 		}
-		log.V(1).Info("created listener address path", "address", listenerData.Address, "path", listenerAddressPath)
+		logger.V(1).Info("created listener address path", "address", listenerData.Address, "path", listenerAddressPath)
 		// write address and ports
 		if err := n.writeAddress(listenerAddressPath, listenerData); err != nil {
-			log.Error(err, "write address to listener address path error", "path", listenerAddressPath)
+			logger.Error(err, "write address to listener address path error", "path", listenerAddressPath)
 			return err
 		}
-		log.V(1).Info("writed address to listener address path", "address", listenerData.Address, "path", listenerAddressPath)
+		logger.V(1).Info("wrote address to listener address path", "address", listenerData.Address, "path", listenerAddressPath)
 		defaultAddressPath = listenerAddressPath
 	}
 
@@ -234,14 +234,14 @@ func (n *NodeServer) writeData(targetPath string, data []util.IngressAddress) er
 
 func (n *NodeServer) writeAddress(targetPath string, data util.IngressAddress) error {
 	if err := os.WriteFile(filepath.Join(targetPath, "address"), []byte(data.Address), fs.FileMode(0644)); err != nil {
-		log.Error(err, "write address to target path error", "path", targetPath)
+		logger.Error(err, "write address to target path error", "path", targetPath)
 		return err
 	}
-	log.V(1).Info("writed address to target path", "address", data.Address)
+	logger.V(1).Info("wrote address to target path", "address", data.Address)
 
 	listenerAddressPortPath := filepath.Join(targetPath, "ports")
 	if err := os.MkdirAll(listenerAddressPortPath, 0755); err != nil {
-		log.Error(err, "create listener address port path error", "path", listenerAddressPortPath)
+		logger.Error(err, "create listener address port path error", "path", listenerAddressPortPath)
 		return err
 	}
 
@@ -250,7 +250,7 @@ func (n *NodeServer) writeAddress(targetPath string, data util.IngressAddress) e
 		if err := os.WriteFile(filepath.Join(listenerAddressPortPath, name), []byte(portStr), fs.FileMode(0644)); err != nil {
 			return err
 		}
-		log.V(1).Info("writed port to target path", "port", port, "address", data.Address)
+		logger.V(1).Info("wrote port to target path", "port", port, "address", data.Address)
 	}
 	return nil
 }
@@ -260,10 +260,10 @@ func (n *NodeServer) symlinkToDefaultAddress(defaultAddressPath, targetPath stri
 	sourcePath = strings.TrimPrefix(sourcePath, "/")
 	destPath := filepath.Join(targetPath, "default-address")
 	if err := os.Symlink(sourcePath, destPath); err != nil {
-		log.Error(err, "symlink to default address error", "sourcePath", sourcePath, "destPath", destPath)
+		logger.Error(err, "symlink to default address error", "sourcePath", sourcePath, "destPath", destPath)
 		return err
 	}
-	log.V(1).Info("symlink to default address", "sourcePath", sourcePath, "destPath", destPath)
+	logger.V(1).Info("symlink to default address", "sourcePath", sourcePath, "destPath", destPath)
 	return nil
 }
 
@@ -278,10 +278,10 @@ func (n *NodeServer) patchPVLabelsWithListener(ctx context.Context, pv *corev1.P
 	maps.Copy(pv.Labels, labels)
 
 	if err := n.client.Patch(ctx, pv, client.MergeFrom(original)); err != nil {
-		log.Error(err, "Patch pv label error", "pv", pv.Name)
+		logger.Error(err, "Patch pv label error", "pv", pv.Name)
 		return err
 	}
-	log.V(1).Info("patched PV labels", "pv", pv.Name, "patchedLabels", labels)
+	logger.V(1).Info("patched PV labels", "pv", pv.Name, "patchedLabels", labels)
 	return nil
 }
 
@@ -297,10 +297,10 @@ func (n *NodeServer) patchPodLabelsWithListener(ctx context.Context, pod *corev1
 	maps.Copy(pod.Labels, labels)
 
 	if err := n.client.Patch(ctx, pod, client.MergeFrom(original)); err != nil {
-		log.Error(err, "Patch pod label error", "pod", pod.Name, "namespace", pod.Namespace)
+		logger.Error(err, "Patch pod label error", "pod", pod.Name, "namespace", pod.Namespace)
 		return err
 	}
-	log.V(1).Info("patched pod labels", "pod", pod.Name, "namespace", pod.Namespace, "patchedLabels", pod.Labels)
+	logger.V(1).Info("patched pod labels", "pod", pod.Name, "namespace", pod.Namespace, "patchedLabels", pod.Labels)
 	return nil
 }
 
@@ -318,7 +318,7 @@ func (n *NodeServer) getAddresses(ctx context.Context, listener *listeners.Liste
 		if err != nil {
 			return nil, err
 		}
-		log.V(1).Info("get address from node", "address", address, "listener", listener.Name, "namespace", listener.Namespace)
+		logger.V(1).Info("get address from node", "address", address, "listener", listener.Name, "namespace", listener.Namespace)
 		return []util.IngressAddress{{AddressInfo: *address, Ports: listener.Status.NodePorts}}, nil
 	} else if len(listener.Status.IngressAddresses) != 0 {
 		var addresses []util.IngressAddress
@@ -331,7 +331,7 @@ func (n *NodeServer) getAddresses(ctx context.Context, listener *listeners.Liste
 				Ports: ingressAddress.Ports,
 			})
 		}
-		log.V(1).Info("get address from listener status", "addresses", addresses, "listener", listener.Name, "namespace", listener.Namespace)
+		logger.V(1).Info("get address from listener status", "addresses", addresses, "listener", listener.Name, "namespace", listener.Namespace)
 		return addresses, nil
 	}
 	return nil, fmt.Errorf("could not get listener address from listener status, listener status is not ready")
@@ -371,18 +371,18 @@ func (*NodeServer) getPodPorts(pod *corev1.Pod) ([]listeners.PortSpec, error) {
 					Protocol: port.Protocol,
 					Port:     port.ContainerPort,
 				})
-				log.V(8).Info("get pod port", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
+				logger.V(8).Info("get pod port", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
 			} else {
-				log.Info("port name is empty, so ignore to add listener", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
+				logger.Info("port name is empty, so ignore to add listener", "port", port, "container", container.Name, "pod", pod.Name, "namespace", pod.Namespace)
 			}
 		}
 	}
 
 	if len(ports) == 0 {
-		log.Info("pod has no vaild ports, please ensure all port has name or pod has at least one valid port", "pod", pod.Name, "namespace", pod.Namespace)
+		logger.Info("pod has no vaild ports, please ensure all port has name or pod has at least one valid port", "pod", pod.Name, "namespace", pod.Namespace)
 		return nil, status.Error(codes.Internal, "pod has no vaild ports, please ensure all port has name")
 	}
-	log.V(1).Info("get pod ports", "ports", ports, "pod", pod.Name, "namespace", pod.Namespace)
+	logger.V(1).Info("get pod ports", "ports", ports, "pod", pod.Name, "namespace", pod.Namespace)
 	return ports, nil
 }
 
@@ -472,7 +472,7 @@ func (n *NodeServer) createListener(
 
 	err = n.client.Create(ctx, listener)
 	if err == nil {
-		log.V(1).Info("successfully created new listener", "listener", listener.Name, "namespace", listener.Namespace)
+		logger.V(1).Info("successfully created new listener", "listener", listener.Name, "namespace", listener.Namespace)
 		return listener, nil
 	}
 
@@ -482,7 +482,7 @@ func (n *NodeServer) createListener(
 		if err != nil {
 			return nil, fmt.Errorf("get existing listener error: %v", err)
 		}
-		log.V(1).Info("found existing listener", "listener", existingListener.Name, "namespace", existingListener.Namespace)
+		logger.V(1).Info("found existing listener", "listener", existingListener.Name, "namespace", existingListener.Namespace)
 		return existingListener, nil
 	}
 
@@ -575,7 +575,7 @@ func (n *NodeServer) buildPodListenersObject(
 
 	// Set controller reference
 	if err := ctrl.SetControllerReference(listener, podListenerObj, n.client.Scheme()); err != nil {
-		log.Error(err, "Failed to set controller reference")
+		logger.Error(err, "Failed to set controller reference")
 	}
 
 	return podListenerObj
@@ -597,7 +597,7 @@ func (n *NodeServer) createOrUpdatePodListeners(
 			if err := n.client.Create(ctx, podListenerObj); err != nil {
 				return fmt.Errorf("failed to create PodListeners: %v", err)
 			}
-			log.V(1).Info("Created new PodListeners",
+			logger.V(1).Info("Created new PodListeners",
 				"name", podListenerObj.Name,
 				"namespace", podListenerObj.Namespace,
 				"volume", volumeName)
@@ -623,7 +623,7 @@ func (n *NodeServer) createOrUpdatePodListeners(
 		return fmt.Errorf("failed to update PodListeners: %v", err)
 	}
 
-	log.V(1).Info("Updated existing PodListeners",
+	logger.V(1).Info("Updated existing PodListeners",
 		"name", existingPodListener.Name,
 		"namespace", existingPodListener.Namespace,
 		"volume", volumeName)
@@ -683,7 +683,7 @@ func (n *NodeServer) NodeUnpublishVolume(ctx context.Context, request *csi.NodeU
 	if err := n.mounter.Unmount(targetPath); err != nil {
 		// FIXME: use status.Error to return error
 		// return nil, status.Error(codes.Internal, err.Error())
-		log.V(1).Info("Volume not found, skip delete volume")
+		logger.V(1).Info("Volume not found, skip delete volume")
 	}
 
 	// remove the target path
@@ -691,7 +691,7 @@ func (n *NodeServer) NodeUnpublishVolume(ctx context.Context, request *csi.NodeU
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.V(1).Info("Volume unpublished", "volumeID", request.GetVolumeId(), "targetPath", targetPath)
+	logger.V(1).Info("Volume unpublished", "volumeID", request.GetVolumeId(), "targetPath", targetPath)
 
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }

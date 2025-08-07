@@ -158,15 +158,15 @@ build-installer: manifests generate kustomize ## Generate a consolidated YAML wi
 
 .PHONY: csi-build
 csi-build: ## Build csi driver.
-	go build -a -ldflags $(LDFLAGS) -o bin/csi-driver cmd/csi_driver/main.go
+	go build -a -ldflags $(LDFLAGS) -o bin/csiplugin cmd/csiplugin/main.go
 
 .PHONY: csi-run
 csi-run: ## Run csi driver.
-	go run ./cmd/csi-driver/main.go
+	go run ./cmd/csiplugin/main.go
 
 .PHONY: csi-docker-build
 csi-docker-build: ## Build docker image with the csi driver.
-	$(CONTAINER_TOOL) build -t ${CSIDRIVER_IMG} --build-arg LDFLAGS=$(LDFLAGS) -f build/csi-driver.Dockerfile .
+	$(CONTAINER_TOOL) build -t ${CSIDRIVER_IMG} --build-arg LDFLAGS=$(LDFLAGS) -f build/csiplugin.Dockerfile .
 
 .PHONY: csi-docker-push
 csi-docker-push: ## Push docker image with the csi driver.
@@ -176,7 +176,7 @@ csi-docker-push: ## Push docker image with the csi driver.
 csi-docker-buildx: ## Build and push docker image for the csi driver for cross-platform support
 	- $(CONTAINER_TOOL) buildx create --name project-v3-builder
 	$(CONTAINER_TOOL) buildx use project-v3-builder
-	$(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${CSIDRIVER_IMG} --metadata-file ${BUILDX_METADATA_FILE} --build-arg LDFLAGS=$(LDFLAGS) -f build/csi-driver.Dockerfile .
+	$(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${CSIDRIVER_IMG} --metadata-file ${BUILDX_METADATA_FILE} --build-arg LDFLAGS=$(LDFLAGS) -f build/csiplugin.Dockerfile .
 	$(CONTAINER_TOOL) buildx rm project-v3-builder
 
 .PHONY: chart ## Generate helm chart for the operator.
