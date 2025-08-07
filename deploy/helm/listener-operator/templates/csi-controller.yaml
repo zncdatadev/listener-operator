@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "operator.labels" . | nindent 4 }}
 spec:
+  replicas: {{ .Values.csiController.replicas | default 2 }}
   selector:
     matchLabels:
       app.kubernetes.io/component: csi-controller
@@ -18,9 +19,6 @@ spec:
       labels:
         app.kubernetes.io/component: csi-controller
         {{- include "operator.selectorLabels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
     spec:
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets:
@@ -103,6 +101,12 @@ spec:
             - --v={{ .Values.livenessProbe.logLevel | default 2 }}
           resources:
             {{- .Values.livenessProbe.resources | toYaml | nindent 12 }}
+          ports:
+            - containerPort: 9808
+              name: healthz
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
           livenessProbe:
             httpGet:
               path: /healthz

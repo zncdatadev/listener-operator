@@ -18,9 +18,6 @@ spec:
       labels:
         app.kubernetes.io/component: csi-node
         {{- include "operator.selectorLabels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
     spec:
       {{- with .Values.image.pullSecrets }}
       imagePullSecrets:
@@ -103,9 +100,13 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --health-port=9808
+            - --probe-timeout=3s
             - --v={{ .Values.livenessProbe.logLevel | default 2 }}
           resources:
             {{- .Values.livenessProbe.resources | toYaml | nindent 12 }}
+          ports:
+            - containerPort: 9808
+              name: healthz
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

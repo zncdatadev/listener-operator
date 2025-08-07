@@ -132,7 +132,7 @@ controller:
 
 podAnnotations: {}
 
-podLabels: {}
+labels: {}
 
 nodeSelector: {}
 
