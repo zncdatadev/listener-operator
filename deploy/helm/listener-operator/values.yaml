@@ -44,10 +44,10 @@ csiController:
   resources:
     requests:
       cpu: 10m
-      memory: 64Mi
+      memory: 16Mi
     limits:
-      cpu: 523m
-      memory: 128Mi
+      cpu: 100m
+      memory: 64Mi
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -63,10 +63,10 @@ csiNode:
   resources:
     requests:
       cpu: 10m
-      memory: 64Mi
+      memory: 16Mi
     limits:
-      cpu: 512m
-      memory: 128Mi
+      cpu: 100m
+      memory: 64Mi
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -86,28 +86,28 @@ csiProvisioner:
   resources:
     requests:
       cpu: 10m
-      memory: 64Mi
+      memory: 16Mi
     limits:
-      cpu: 128m
-      memory: 128Mi
+      cpu: 100m
+      memory: 64Mi
 csiNodeDriverRegistrar:
   logLevel: 2
   resources:
     requests:
-      cpu: 100m
-      memory: 32Mi
+      cpu: 10m
+      memory: 16Mi
     limits:
-      cpu: 100m
+      cpu: 50m
       memory: 32Mi
 livenessProbe:
   logLevel: 2
   resources:
     requests:
       cpu: 10m
-      memory: 32Mi
+      memory: 16Mi
     limits:
-      cpu: 128m
-      memory: 64Mi
+      cpu: 50m
+      memory: 16Mi
 
 
 podSecurityContext:
@@ -122,12 +122,12 @@ controller:
   logLevel: 2
   resources:
     # Resource requests and limits for the controller pod
-    limits:
-      cpu: 50m
-      memory: 64Mi
     requests:
       cpu: 10m
-      memory: 32Mi
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
 
 
 podAnnotations: {}
