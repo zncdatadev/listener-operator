@@ -2,8 +2,6 @@
 
 This chart bootstraps an Kubedoop Listener Operator deployment on a Kubernetes cluster using the Helm package manager. It's built-in to the Kubedoop project.
 
-## Pre-Requisites
-
 ## Installing the Chart
 
 To install the chart with the release name `listener-operator`:
