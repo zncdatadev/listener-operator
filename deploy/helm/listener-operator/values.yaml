@@ -41,13 +41,14 @@ csiController:
   # Number of controller replicas
   replicas: 1
   # Resources of the CSI controller container
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 100m
-      memory: 64Mi
+  ## resources:
+  ##   requests:
+  ##     cpu: 10m
+  ##     memory: 16Mi
+  ##   limits:
+  ##     cpu: 100m
+  ##     memory: 64Mi
+  resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -60,13 +61,14 @@ csiController:
 csiNode:
   logLevel: 2
   # Resources of the CSI node container
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 100m
-      memory: 64Mi
+  ## resources:
+  ##   requests:
+  ##     cpu: 10m
+  ##     memory: 16Mi
+  ##   limits:
+  ##     cpu: 100m
+  ##     memory: 64Mi
+  resources: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -83,31 +85,34 @@ csiNode:
 
 csiProvisioner:
   logLevel: 2
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 100m
-      memory: 64Mi
+  ## resources:
+  ##   requests:
+  ##     cpu: 10m
+  ##     memory: 16Mi
+  ##   limits:
+  ##     cpu: 100m
+  ##     memory: 64Mi
+  resources: {}
 csiNodeDriverRegistrar:
   logLevel: 2
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 50m
-      memory: 32Mi
+  ## resources:
+  ##   requests:
+  ##     cpu: 10m
+  ##     memory: 16Mi
+  ##   limits:
+  ##     cpu: 50m
+  ##     memory: 32Mi
+  resources: {}
 livenessProbe:
   logLevel: 2
-  resources:
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 50m
-      memory: 16Mi
+  ## resources:
+  ##   requests:
+  ##     cpu: 10m
+  ##     memory: 16Mi
+  ##   limits:
+  ##     cpu: 50m
+  ##     memory: 16Mi
+  resources: {}
 
 
 podSecurityContext:
@@ -120,15 +125,15 @@ podSecurityContext:
 controller:
   replicas: 1
   logLevel: 2
-  resources:
-    # Resource requests and limits for the controller pod
-    requests:
-      cpu: 10m
-      memory: 16Mi
-    limits:
-      cpu: 100m
-      memory: 64Mi
-
+  ## resources:
+  ##   # Resource requests and limits for the controller pod
+  ##   requests:
+  ##     cpu: 10m
+  ##     memory: 16Mi
+  ##   limits:
+  ##     cpu: 100m
+  ##     memory: 64Mi
+  resources: {}
 
 podAnnotations: {}
 
