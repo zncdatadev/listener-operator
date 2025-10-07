@@ -12,7 +12,7 @@ spec:
   serviceAccountName: test
   containers:
   - name: kubectl
-    image: bitnami/kubectl:1.22.2
+    image: quay.io/zncdatadev/tools:1.0.0-kubedoop0.0.0-dev
     command:
     - sh
     - -c
@@ -36,7 +36,7 @@ spec:
       echo "getting listener address: $address, port: $port"
 
       # access the listener
-      if wget -qO - http://$address:$port | grep -q "Caddy works"; then
+      if curl -sk http://$address:$port | grep -q "Caddy works"; then
         echo "accessed listener ingress successfully"
         exit 0
       else

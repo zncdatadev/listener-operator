@@ -17,7 +17,7 @@ spec:
     - name: URL
       valueFrom:
         configMapKeyRef:
-          name: caddy-service-discovery 
+          name: caddy-service-discovery
           key: url
     command:
     - sh
