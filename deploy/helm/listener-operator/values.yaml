@@ -5,11 +5,11 @@ image:
   pullSecrets: []
   listenerOperator:
     repository: quay.io/zncdatadev/listener-operator
-    tag: 0.0.0-dev
+    tag: "" # Defaults to chart appVersion
     pullPolicy: IfNotPresent
   csiDriver:
     repository: quay.io/zncdatadev/listener-csi-driver
-    tag: 0.0.0-dev
+    tag: "" # Defaults to chart appVersion
     pullPolicy: IfNotPresent
   csiProvisioner:
     repository: quay.io/zncdatadev/sig-storage/csi-provisioner
