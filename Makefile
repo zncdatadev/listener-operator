@@ -51,9 +51,10 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-# ref operator-go apis to generate crd.
+	# ref operator-go apis to generate crd.
 	"$(CONTROLLER_GEN)" rbac:roleName=manager-role crd webhook paths="github.com/zncdatadev/operator-go/pkg/apis/listeners/..." output:crd:artifacts:config=config/crd/bases
 	"$(CONTROLLER_GEN)" rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -177,11 +178,11 @@ csi-run: ## Run csi driver.
 
 .PHONY: csi-docker-build
 csi-docker-build: ## Build docker image with the csi driver.
-	$(CONTAINER_TOOL) build -t ${CSIDRIVER_IMG} --build-arg LDFLAGS=$(LDFLAGS) -f build/csiplugin.Dockerfile .
+	"$(CONTAINER_TOOL)" build -t ${CSIDRIVER_IMG} --build-arg LDFLAGS=$(LDFLAGS) -f build/csiplugin.Dockerfile .
 
 .PHONY: csi-docker-push
 csi-docker-push: ## Push docker image with the csi driver.
-	$(CONTAINER_TOOL) push ${CSIDRIVER_IMG}
+	"$(CONTAINER_TOOL)" push ${CSIDRIVER_IMG}
 
 .PHONY: csi-docker-buildx
 csi-docker-buildx: ## Build and push docker image for the csi driver for cross-platform support
@@ -335,7 +336,7 @@ KIND_K8S_VERSION ?= 1.26.15
 KIND_IMAGE ?= kindest/node:v${KIND_K8S_VERSION}
 # Define operator dependencies to be installed before running chainsaw tests.
 # It is a list of Helm chart names separated by spaces.
-OPERATOR_DEPENDS ?= commons-operator listener-operator secret-operator zookeeper-operator
+OPERATOR_DEPENDS ?= commons-operator
 
 .PHONY: chainsaw
 chainsaw: $(CHAINSAW) ## Download chainsaw locally if necessary.
@@ -365,8 +366,8 @@ setup-chainsaw-cluster: ## Set up a Kind cluster for e2e tests if it does not ex
 	fi
 
 .PHONY: setup-chainsaw-e2e
-setup-chainsaw-e2e: chainsaw docker-build ## Run the chainsaw setup
-	"$(KIND)" --name $(CHAINSAW_CLUSTER) load docker-image "$(IMG)"
+setup-chainsaw-e2e: chainsaw docker-build csi-docker-build ## Run the chainsaw setup
+	"$(KIND)" --name $(CHAINSAW_CLUSTER) load docker-image "$(IMG)" "$(CSIDRIVER_IMG)"
 	KUBECONFIG=$(CHAINSAW_KUBECONFIG) $(MAKE) deploy
 
 
