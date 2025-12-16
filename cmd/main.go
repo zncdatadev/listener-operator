@@ -26,7 +26,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	znclistenersv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
+	znclistenerv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,10 +37,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	"github.com/zncdatadev/listener-operator/internal/controller"
 	listenercontroller "github.com/zncdatadev/listener-operator/internal/controller/listener"
 	"github.com/zncdatadev/listener-operator/internal/util/version"
+	listenerv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -51,20 +51,22 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(znclistenersv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(znclistenerv1alpha1.AddToScheme(scheme))
 
-	utilruntime.Must(listenersv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(listenerv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
 	var metricsAddr string
+	var metricsCertPath, metricsCertName, metricsCertKey string
+	var webhookCertPath, webhookCertName, webhookCertKey string
 	var enableLeaderElection bool
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var showVersion bool
 	var tlsOpts []func(*tls.Config)
-	var versionInfo bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -73,19 +75,25 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
+	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
+	flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "The name of the webhook certificate file.")
+	flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "The name of the webhook key file.")
+	flag.StringVar(&metricsCertPath, "metrics-cert-path", "",
+		"The directory that contains the metrics server certificate.")
+	flag.StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "The name of the metrics server certificate file.")
+	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
-	flag.BoolVar(&versionInfo, "version", false, "Prints the version information")
-
+	flag.BoolVar(&showVersion, "version", false, "Print version information and exit.")
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	if versionInfo {
-		version := version.NewAppInfo("listener-operator").String()
-		fmt.Println(version)
+	if showVersion {
+		importedVersion := version.NewAppInfo("listener-operator").String()
+		fmt.Println(importedVersion)
 		os.Exit(0)
 	}
 
@@ -106,9 +114,22 @@ func main() {
 		tlsOpts = append(tlsOpts, disableHTTP2)
 	}
 
-	webhookServer := webhook.NewServer(webhook.Options{
-		TLSOpts: tlsOpts,
-	})
+	// Initial webhook TLS options
+	webhookTLSOpts := tlsOpts
+	webhookServerOptions := webhook.Options{
+		TLSOpts: webhookTLSOpts,
+	}
+
+	if len(webhookCertPath) > 0 {
+		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
+			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
+
+		webhookServerOptions.CertDir = webhookCertPath
+		webhookServerOptions.CertName = webhookCertName
+		webhookServerOptions.KeyName = webhookCertKey
+	}
+
+	webhookServer := webhook.NewServer(webhookServerOptions)
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
 	// More info:
@@ -124,12 +145,25 @@ func main() {
 		// FilterProvider is used to protect the metrics endpoint with authn/authz.
 		// These configurations ensure that only authorized users and service accounts
 		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
-		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/metrics/filters#WithAuthenticationAndAuthorization
+		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.22.4/pkg/metrics/filters#WithAuthenticationAndAuthorization
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+	}
 
-		// TODO(user): If CertDir, CertName, and KeyName are not specified, controller-runtime will automatically
-		// generate self-signed certificates for the metrics server. While convenient for development and testing,
-		// this setup is not recommended for production.
+	// If the certificate is not specified, controller-runtime will automatically
+	// generate self-signed certificates for the metrics server. While convenient for development and testing,
+	// this setup is not recommended for production.
+	//
+	// TODO(user): If you enable certManager, uncomment the following lines:
+	// - [METRICS-WITH-CERTS] at config/default/kustomization.yaml to generate and use certificates
+	// managed by cert-manager for the metrics server.
+	// - [PROMETHEUS-WITH-CERTS] at config/prometheus/kustomization.yaml for TLS certification.
+	if len(metricsCertPath) > 0 {
+		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
+			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
+
+		metricsServerOptions.CertDir = metricsCertPath
+		metricsServerOptions.CertName = metricsCertName
+		metricsServerOptions.KeyName = metricsCertKey
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -163,6 +197,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "ListenerClass")
 		os.Exit(1)
 	}
+
 	if err = (&listenercontroller.ListenerReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
