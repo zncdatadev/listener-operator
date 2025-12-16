@@ -62,7 +62,7 @@ jobs:
           make helm-chart-publish
 
       - name: Clone helm charts repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: zncdatadev/kubedoop-helm-charts
           ref: gh-pages
