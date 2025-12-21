@@ -99,7 +99,7 @@ jobs:
         env:
           KIND_K8S_VERSION: ${{ matrix.k8s-version }}
           CHAINSAW_KUBECONFIG: kind-kubeconfig-${{ matrix.k8s-version }}
-        run: make chainsaw-test
+        run: make chainsaw-e2e
 
 
   release-image:

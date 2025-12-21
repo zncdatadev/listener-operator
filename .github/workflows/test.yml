@@ -56,13 +56,13 @@ jobs:
           CHAINSAW_KUBECONFIG: kind-kubeconfig-${{ matrix.k8s-version }}
         run: make setup-chainsaw-cluster
 
-      - name: Setup Chainsaw
+      - name: Chainsaw test setup
         env:
           KIND_K8S_VERSION: ${{ matrix.k8s-version }}
           CHAINSAW_KUBECONFIG: kind-kubeconfig-${{ matrix.k8s-version }}
         run: make setup-chainsaw-e2e
 
-      - name: Run chainsaw-e2e
+      - name: Test with Chainsaw
         env:
           KIND_K8S_VERSION: ${{ matrix.k8s-version }}
           CHAINSAW_KUBECONFIG: kind-kubeconfig-${{ matrix.k8s-version }}
