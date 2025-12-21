@@ -167,6 +167,7 @@ build-installer: manifests generate kustomize ## Generate a consolidated YAML wi
 
 
 ## CSI Driver
+CSIDRIVER_IMG ?= ${REGISTRY}/listener-csi-driver:$(VERSION)
 
 .PHONY: csi-build
 csi-build: ## Build csi driver.
@@ -190,7 +191,7 @@ csi-docker-buildx: ## Build and push docker image for the csi driver for cross-p
 	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' build/csiplugin.Dockerfile > build/csiplugin.Dockerfile.cross
 	- $(CONTAINER_TOOL) buildx create --name $(PROJECT_NAME)-builder
 	$(CONTAINER_TOOL) buildx use $(PROJECT_NAME)-builder
-	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --build-arg LDFLAGS=$(LDFLAGS) --tag ${IMG} --metadata-file docker-digests.json -f build/csiplugin.Dockerfile.cross .
+	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --build-arg LDFLAGS=$(LDFLAGS) --tag ${CSIDRIVER_IMG} --metadata-file docker-digests.json -f build/csiplugin.Dockerfile.cross .
 	- $(CONTAINER_TOOL) buildx rm $(PROJECT_NAME)-builder
 	rm build/csiplugin.Dockerfile.cross
 
