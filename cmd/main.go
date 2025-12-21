@@ -37,10 +37,10 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	listenerv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 	"github.com/zncdatadev/listener-operator/internal/controller"
 	listenercontroller "github.com/zncdatadev/listener-operator/internal/controller/listener"
 	"github.com/zncdatadev/listener-operator/internal/util/version"
-	listenerv1alpha1 "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
