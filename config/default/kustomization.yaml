@@ -47,11 +47,11 @@ patchesJson6902:
 - target:
     version: v1
     kind: StorageClass
-    name: secret-operator-secrets.kubedoop.dev
+    name: listener-operator-listeners.kubedoop.dev
   patch: |-
     - op: replace
       path: /metadata/name
-      value: secrets.kubedoop.dev
+      value: listeners.kubedoop.dev
 
 # Uncomment the patches line if you enable Metrics and CertManager
 # [METRICS-WITH-CERTS] To enable metrics protected with certManager, uncomment the following line.
