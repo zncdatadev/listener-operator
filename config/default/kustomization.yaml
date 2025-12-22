@@ -42,6 +42,17 @@ patches:
   target:
     kind: Deployment
 
+patchesJson6902:
+# Override StorageClass name to avoid namePrefix
+- target:
+    version: v1
+    kind: StorageClass
+    name: secret-operator-secrets.kubedoop.dev
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: secrets.kubedoop.dev
+
 # Uncomment the patches line if you enable Metrics and CertManager
 # [METRICS-WITH-CERTS] To enable metrics protected with certManager, uncomment the following line.
 # This patch will protect the metrics with certManager self-signed certs.
