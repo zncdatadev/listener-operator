@@ -1,0 +1,6 @@
+apiVersion: listeners.kubedoop.dev/v1alpha1
+kind: ListenerClass
+metadata:
+  name: cluster-internal
+spec:
+  serviceType: ClusterIP

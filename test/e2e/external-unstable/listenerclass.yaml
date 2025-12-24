@@ -1,0 +1,6 @@
+apiVersion: listeners.kubedoop.dev/v1alpha1
+kind: ListenerClass
+metadata:
+  name: external-unstable
+spec:
+  serviceType: NodePort
