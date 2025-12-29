@@ -6,7 +6,7 @@ require (
 	github.com/container-storage-interface/spec v1.11.0
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.22.0
-	github.com/onsi/ginkgo/v2 v2.25.2
+	github.com/onsi/ginkgo/v2 v2.27.1
 	github.com/onsi/gomega v1.38.2
 	github.com/zncdatadev/operator-go v0.12.4
 	google.golang.org/grpc v1.75.0
@@ -15,6 +15,8 @@ require (
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.21.0
 )
+
+require golang.org/x/mod v0.27.0 // indirect
 
 require (
 	cel.dev/expr v0.24.0 // indirect
