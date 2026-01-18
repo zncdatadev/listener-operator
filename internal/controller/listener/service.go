@@ -118,7 +118,7 @@ func (s *ServiceReconciler) getPodSelectorLabels() map[string]string {
 	return labels
 }
 
-func (s *ServiceReconciler) getExternalTrafficPolicyFromListenerClass(listenerClass *listeners.ListenerClass) *corev1.ServiceExternalTrafficPolicyType {
+func (s *ServiceReconciler) getExternalTrafficPolicyFromListenerClass(listenerClass *listeners.ListenerClass) *corev1.ServiceExternalTrafficPolicy {
 	serviceType := *listenerClass.Spec.ServiceType
 
 	if serviceType == corev1.ServiceTypeNodePort || serviceType == corev1.ServiceTypeLoadBalancer {
