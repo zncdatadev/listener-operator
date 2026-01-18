@@ -756,7 +756,7 @@ func (n *NodeServer) NodeGetCapabilities(ctx context.Context, request *csi.NodeG
 	}
 
 	// var capabilities []*csi.NodeServiceCapability
-	capabilities := make([]*csi.NodeServiceCapability, 0)
+	capabilities := make([]*csi.NodeServiceCapability, 0, 1)
 
 	for _, capability := range []csi.NodeServiceCapability_RPC_Type{
 		csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,
