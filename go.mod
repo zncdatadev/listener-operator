@@ -1,6 +1,8 @@
 module github.com/zncdatadev/listener-operator
 
-go 1.25.5
+go 1.24.1
+
+toolchain go1.24.11
 
 require (
 	github.com/container-storage-interface/spec v1.11.0
