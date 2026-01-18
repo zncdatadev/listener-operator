@@ -19,12 +19,11 @@ package controller
 import (
 	"context"
 
+	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	listenersv1alpha1 "github.com/zncdatadev/listener-operator/api/v1alpha1"
 )
 
 // PodListenersReconciler reconciles a PodListeners object
@@ -48,7 +47,7 @@ func (r *PodListenersReconciler) Reconcile(ctx context.Context, req ctrl.Request
 // SetupWithManager sets up the controller with the Manager.
 func (r *PodListenersReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&listenersv1alpha1.PodListeners{}).
+		For(&listeners.PodListeners{}).
 		Named("podlisteners").
 		Complete(r)
 }
