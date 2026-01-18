@@ -33,8 +33,27 @@ spec:
           imagePullPolicy: {{ .Values.image.listenerOperator.pullPolicy | default "IfNotPresent" }}
           args:
             - --leader-elect
-            - --health-probe-bind-address=:8081
+            - --health-probe-bind-address={{ .Values.controller.healthProbe.bindAddress }}
+            {{- if .Values.controller.metrics.enabled }}
+            {{- $metricsPort := include "operator.metricsPort" .Values.controller.metrics }}
+            - --metrics-bind-address=:{{ $metricsPort }}
+            {{- if .Values.controller.metrics.secure }}
+            - --metrics-secure=true
+            {{- end }}
+            {{- end }}
             - --zap-log-level={{ .Values.controller.logLevel | default 2 }}
+          ports:
+            {{- if .Values.controller.metrics.enabled }}
+            {{- $metricsScheme := include "operator.metricsScheme" .Values.controller.metrics }}
+            {{- $metricsPort := include "operator.metricsPort" .Values.controller.metrics }}
+            - containerPort: {{ $metricsPort }}
+              name: {{ $metricsScheme }}
+              protocol: TCP
+            {{- end }}
+            {{- $healthPort := include "operator.healthProbePort" .Values.controller.healthProbe }}
+            - containerPort: {{ $healthPort }}
+              name: health
+              protocol: TCP
           resources:
             {{- toYaml .Values.controller.resources | nindent 12 }}
           securityContext:
@@ -42,7 +61,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8081
+              port: {{ $healthPort }}
             initialDelaySeconds: 10
             timeoutSeconds: 3
             periodSeconds: 10
@@ -50,7 +69,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: 8081
+              port: {{ $healthPort }}
             initialDelaySeconds: 5
             timeoutSeconds: 3
             periodSeconds: 5
