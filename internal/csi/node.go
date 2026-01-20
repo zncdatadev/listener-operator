@@ -23,7 +23,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	podListener "github.com/zncdatadev/listener-operator/api/v1alpha1" // for pod listeners
 	"github.com/zncdatadev/listener-operator/pkg/util"
 )
 
@@ -531,12 +530,12 @@ func (n *NodeServer) findPodVolumeNameForPVC(pod *corev1.Pod, pvcName string) (s
 }
 
 // determinePodListenerScope determines the PodListener scope based on listener status
-func (n *NodeServer) determinePodListenerScope(listener *listeners.Listener) podListener.PodListenerScope {
+func (n *NodeServer) determinePodListenerScope(listener *listeners.Listener) listeners.PodListenerScope {
 	if len(listener.Status.NodePorts) > 0 {
 		// If NodePorts are used, set the scope to Node level
-		return podListener.PodlistenerNodeScope
+		return listeners.PodlistenerNodeScope
 	}
-	return podListener.PodlistenerClusterScope
+	return listeners.PodlistenerClusterScope
 }
 
 // buildPodListenersObject builds the PodListeners object
@@ -544,9 +543,9 @@ func (n *NodeServer) buildPodListenersObject(
 	pod *corev1.Pod,
 	listener *listeners.Listener,
 	volumeName string,
-	scope podListener.PodListenerScope,
+	scope listeners.PodListenerScope,
 	ingressAddresses []util.IngressAddress,
-) *podListener.PodListeners {
+) *listeners.PodListeners {
 	// Convert to listeners.IngressAddressSpec type
 	listenerIngresses := make([]listeners.IngressAddressSpec, 0, len(ingressAddresses))
 	for _, ingressAddress := range ingressAddresses {
@@ -558,13 +557,13 @@ func (n *NodeServer) buildPodListenersObject(
 	}
 
 	// Create PodListeners object
-	podListenerObj := &podListener.PodListeners{
+	podListenerObj := &listeners.PodListeners{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", "pod", pod.UID),
 			Namespace: pod.Namespace,
 		},
-		Spec: podListener.PodListenersSpec{
-			Listeners: map[string]podListener.PodListener{
+		Spec: listeners.PodListenersSpec{
+			Listeners: map[string]listeners.PodListener{
 				volumeName: {
 					Scope:             scope,
 					ListenerIngresses: listenerIngresses,
@@ -584,11 +583,11 @@ func (n *NodeServer) buildPodListenersObject(
 // createOrUpdatePodListeners creates or updates PodListeners resource
 func (n *NodeServer) createOrUpdatePodListeners(
 	ctx context.Context,
-	podListenerObj *podListener.PodListeners,
+	podListenerObj *listeners.PodListeners,
 	volumeName string,
 ) error {
 	// Check if PodListeners resource already exists
-	existingPodListener := &podListener.PodListeners{}
+	existingPodListener := &listeners.PodListeners{}
 	err := n.client.Get(ctx, client.ObjectKeyFromObject(podListenerObj), existingPodListener)
 
 	if err != nil {
@@ -612,7 +611,7 @@ func (n *NodeServer) createOrUpdatePodListeners(
 
 	// Ensure Listeners map is initialized
 	if existingPodListener.Spec.Listeners == nil {
-		existingPodListener.Spec.Listeners = make(map[string]podListener.PodListener)
+		existingPodListener.Spec.Listeners = make(map[string]listeners.PodListener)
 	}
 
 	// Update or add listener configuration for specified volume
