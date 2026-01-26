@@ -3,7 +3,7 @@ module github.com/zncdatadev/listener-operator
 go 1.25.5
 
 require (
-	github.com/container-storage-interface/spec v1.11.0
+	github.com/container-storage-interface/spec v1.12.0
 	github.com/golang/protobuf v1.5.4
 	github.com/kubernetes-csi/csi-lib-utils v0.22.0
 	github.com/onsi/ginkgo/v2 v2.27.5
