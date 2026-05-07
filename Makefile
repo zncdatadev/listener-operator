@@ -376,6 +376,15 @@ setup-chainsaw-e2e: chainsaw docker-build csi-docker-build ## Run the chainsaw s
 chainsaw-e2e: ## Run the chainsaw e2e tests
 	KUBECONFIG=$(CHAINSAW_KUBECONFIG) $(CHAINSAW) test --config ./test/e2e/.chainsaw.yaml --test-dir ./test/e2e/
 
+.PHONY: chart-e2e
+chart-e2e: setup-chainsaw-cluster chainsaw docker-build csi-docker-build helm-chart-package ## Run e2e tests with Helm chart deployment
+	"$(KIND)" --name $(CHAINSAW_CLUSTER) load docker-image "$(IMG)" "$(CSIDRIVER_IMG)"
+	"$(HELM)" upgrade --install --create-namespace --namespace $(PROJECT_NAME) \
+		--kubeconfig $(CHAINSAW_KUBECONFIG) --wait $(PROJECT_NAME) \
+		--set image.csiDriver.tag=$(VERSION) \
+		target/charts/$(PROJECT_NAME)-$(VERSION).tgz
+	KUBECONFIG=$(CHAINSAW_KUBECONFIG) $(CHAINSAW) test --config ./test/e2e/.chainsaw.yaml --test-dir ./test/e2e/
+
 .PHONY: cleanup-chainsaw-e2e
 cleanup-chainsaw-e2e: ## Run the chainsaw cleanup
 	KUBECONFIG=$(CHAINSAW_KUBECONFIG) $(MAKE) undeploy
