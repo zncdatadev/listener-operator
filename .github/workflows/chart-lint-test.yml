@@ -107,7 +107,7 @@ jobs:
           kind load docker-image quay.io/zncdatadev/listener-operator:$VERSION quay.io/zncdatadev/listener-csi-driver:$VERSION
 
       - name: Run chart-testing (install)
-        id: ct-test
+
         if: steps.list-changed.outputs.changed == 'true'
         run: |
           ct install --config ./.github/configs/ct-install.yaml
