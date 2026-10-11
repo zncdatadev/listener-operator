@@ -7,12 +7,13 @@ import (
 	"maps"
 
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
-	operatorclient "github.com/zncdatadev/operator-go/pkg/client"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	util "github.com/zncdatadev/listener-operator/pkg/util"
 )
@@ -44,10 +45,15 @@ func (s *ServiceReconciler) createService(
 
 	for _, port := range s.listener.Spec.Ports {
 		if port.Name != "" {
+			protocol := port.Protocol
+			if protocol == "" {
+				protocol = corev1.ProtocolTCP
+			}
 			ports = append(ports, corev1.ServicePort{
-				Name:     port.Name,
-				Protocol: port.Protocol,
-				Port:     port.Port,
+				Name:       port.Name,
+				Protocol:   protocol,
+				Port:       port.Port,
+				TargetPort: intstr.FromInt32(port.Port),
 			})
 		} else {
 			logger.V(1).Info("port name is empty, so ignore it", "port", port)
@@ -67,7 +73,7 @@ func (s *ServiceReconciler) createService(
 			Ports:                    ports,
 			Selector:                 s.getPodSelectorLabels(),
 			Type:                     *listenerClass.Spec.ServiceType,
-			PublishNotReadyAddresses: s.listener.Spec.PublishNotReadyAddresses,
+			PublishNotReadyAddresses: s.listener.Spec.GetPublishNotReadyAddresses(),
 		},
 	}
 
@@ -76,13 +82,38 @@ func (s *ServiceReconciler) createService(
 		service.Spec.ExternalTrafficPolicy = *externalTrafficPolicy
 	}
 
-	if err := ctrl.SetControllerReference(s.listener, service, s.client.Scheme()); err != nil {
+	desired := service.DeepCopy()
+	operation, err := controllerutil.CreateOrUpdate(ctx, s.client, service, func() error {
+		// Keep API-server allocations while updating the fields owned by this controller.
+		ports := append([]corev1.ServicePort(nil), desired.Spec.Ports...)
+		if desired.Spec.Type == corev1.ServiceTypeNodePort || desired.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			for i := range ports {
+				for _, existing := range service.Spec.Ports {
+					if existing.Name == ports[i].Name && existing.Protocol == ports[i].Protocol {
+						ports[i].NodePort = existing.NodePort
+						break
+					}
+				}
+			}
+		}
+		service.Spec.Ports = ports
+		service.Spec.Selector = desired.Spec.Selector
+		service.Spec.Type = desired.Spec.Type
+		service.Spec.PublishNotReadyAddresses = desired.Spec.PublishNotReadyAddresses
+		service.Spec.ExternalTrafficPolicy = desired.Spec.ExternalTrafficPolicy
+		if desired.Spec.Type != corev1.ServiceTypeLoadBalancer {
+			service.Spec.AllocateLoadBalancerNodePorts = nil
+			service.Spec.LoadBalancerClass = nil
+		}
+		if desired.Spec.Type != corev1.ServiceTypeLoadBalancer ||
+			desired.Spec.ExternalTrafficPolicy != corev1.ServiceExternalTrafficPolicyLocal {
+			service.Spec.HealthCheckNodePort = 0
+		}
+		return ctrl.SetControllerReference(s.listener, service, s.client.Scheme())
+	})
+	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	if mutant, err := operatorclient.CreateOrUpdate(ctx, s.client, service); err != nil {
-		return ctrl.Result{}, err
-	} else if mutant {
+	} else if operation != controllerutil.OperationResultNone {
 		// we need to requeue the request to update the service immediately!
 		return ctrl.Result{Requeue: true}, nil
 	}

@@ -13,13 +13,14 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
 
-	"github.com/zncdatadev/operator-go/pkg/constants"
+	oplistener "github.com/zncdatadev/operator-go/pkg/listener"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/mount"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -61,10 +62,10 @@ func newVolumeContextFromMap(parameters map[string]string) *volumeContext {
 	if val, ok := parameters[STORAGE_KUBERNETES_CSI_PROVISIONER_IDENTITY]; ok {
 		v.Provisioner = &val
 	}
-	if val, ok := parameters[constants.AnnotationListenersClass]; ok {
+	if val, ok := parameters[oplistener.ListenerClassAnnotation]; ok {
 		v.ListenerClassName = &val
 	}
-	if val, ok := parameters[constants.AnnotationListenerName]; ok {
+	if val, ok := parameters[oplistener.AnnotationListenerName]; ok {
 		v.ListenerName = &val
 	}
 
@@ -461,7 +462,7 @@ func (n *NodeServer) createListener(
 		Spec: listeners.ListenerSpec{
 			ClassName:                listenerClass.Name,
 			Ports:                    ports,
-			PublishNotReadyAddresses: true,
+			PublishNotReadyAddresses: ptr.To(true),
 		},
 	}
 
