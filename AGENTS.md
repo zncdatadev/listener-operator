@@ -45,7 +45,7 @@ Manages Kubernetes service discovery and network listener lifecycle for the Kube
 - Requires a Kubernetes cluster for E2E testing
 
 ### Common Patterns
-- Controllers in `internal/controller/` follow the `operator-go` GenericReconciler pattern
+- Controllers in `internal/controller/` use specialized controllers for listener resources
 - CRDs use `v1alpha1` API version under group `listeners.kubedoop.dev`
 - CSI driver in `internal/csi/` implements the Container Storage Interface for listener address injection
 - The CSI node plugin mounts listener endpoints (IP/hostname/port) into pod volumes
@@ -53,7 +53,7 @@ Manages Kubernetes service discovery and network listener lifecycle for the Kube
 ## Dependencies
 
 ### Internal
-- `../operator-go` - Shared operator framework (`github.com/zncdatadev/operator-go v0.12.6`)
+- `../operator-go` - Shared operator framework (`github.com/zncdatadev/operator-go v0.13.0`)
 
 ### External
 - `sigs.k8s.io/controller-runtime` - Kubernetes controller runtime

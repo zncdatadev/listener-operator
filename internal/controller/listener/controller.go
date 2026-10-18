@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	listeners "github.com/zncdatadev/operator-go/pkg/apis/listeners/v1alpha1"
-	"github.com/zncdatadev/operator-go/pkg/constants"
+	oplistener "github.com/zncdatadev/operator-go/pkg/listener"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -165,7 +165,7 @@ func (r *ListenerReconciler) handlePVChanges(ctx context.Context, obj client.Obj
 	pv := obj.(*corev1.PersistentVolume)
 
 	if ns, ok := pv.Labels[util.LabelListenerNamespace]; ok {
-		if name, ok := pv.Labels[constants.AnnotationListenerName]; ok {
+		if name, ok := pv.Labels[oplistener.AnnotationListenerName]; ok {
 			return []ctrl.Request{{
 				NamespacedName: types.NamespacedName{
 					Name:      name,

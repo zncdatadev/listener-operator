@@ -64,6 +64,9 @@ spec:
                 type: array
               publishNotReadyAddresses:
                 default: true
+                description: |-
+                  Pointer so a client can request false; a plain bool would be dropped by omitempty
+                  and the CRD default would restore true.
                 type: boolean
             required:
             - className

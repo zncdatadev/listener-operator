@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/zncdatadev/operator-go/pkg/constants"
+	oplistener "github.com/zncdatadev/operator-go/pkg/listener"
 )
 
 var (
@@ -161,7 +161,7 @@ func (c *ControllerServer) getAccessibleTopology(request *csi.CreateVolumeReques
 //   - ListenerClass not found when looking up by name or from listener
 func (c *ControllerServer) getListenerClass(ctx context.Context, volumeContext map[string]string, namespace string) (*listeners.ListenerClass, error) {
 	// Try to get listener name from volume context first
-	if listenerName, exists := volumeContext[constants.AnnotationListenerName]; exists {
+	if listenerName, exists := volumeContext[oplistener.AnnotationListenerName]; exists {
 		// Get listener by name
 		listener := &listeners.Listener{}
 		if err := c.client.Get(ctx, client.ObjectKey{Name: listenerName, Namespace: namespace}, listener); err != nil {
@@ -179,7 +179,7 @@ func (c *ControllerServer) getListenerClass(ctx context.Context, volumeContext m
 	}
 
 	// If no listener name found, get listener class directly
-	className, exists := volumeContext[constants.AnnotationListenersClass]
+	className, exists := volumeContext[oplistener.ListenerClassAnnotation]
 	if exists {
 		listenerClass := &listeners.ListenerClass{}
 		if err := c.client.Get(ctx, client.ObjectKey{Name: className, Namespace: namespace}, listenerClass); err != nil {
@@ -226,10 +226,10 @@ func (c *ControllerServer) getVolumeContext(ctx context.Context, params *createV
 	logger.V(1).Info("get annotations from PVC", "namespace", params.pvcNamespace, "name", params.PVCName, "annotations", annotations)
 
 	// check only one of them exists
-	_, classNameExists := annotations[constants.AnnotationListenersClass]
-	_, listenerNameExist := annotations[constants.AnnotationListenerName]
+	_, classNameExists := annotations[oplistener.ListenerClassAnnotation]
+	_, listenerNameExist := annotations[oplistener.AnnotationListenerName]
 	if !classNameExists && !listenerNameExist {
-		return nil, fmt.Errorf("pvc annotations must have one of %q or %q", constants.AnnotationListenersClass, constants.AnnotationListenerName)
+		return nil, fmt.Errorf("pvc annotations must have one of %q or %q", oplistener.ListenerClassAnnotation, oplistener.AnnotationListenerName)
 	}
 
 	return annotations, nil
